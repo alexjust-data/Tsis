@@ -1,5 +1,6 @@
 // Force HTTPS - env var was causing issues
 const API_URL = "https://gracious-enjoyment-production.up.railway.app/api/v1";
+console.log("🔵 API_URL:", API_URL);
 
 interface ApiOptions extends RequestInit {
   token?: string;
