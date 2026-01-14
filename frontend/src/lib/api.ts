@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://gracious-enjoyment-production.up.railway.app/api/v1";
+// Force HTTPS - env var was causing issues
+const API_URL = "https://gracious-enjoyment-production.up.railway.app/api/v1";
 
 interface ApiOptions extends RequestInit {
   token?: string;
