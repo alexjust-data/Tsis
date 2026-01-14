@@ -1,0 +1,4 @@
+polars>=0.20.0
+sqlalchemy>=2.0.25
+psycopg2-binary>=2.9.9
+pyarrow>=14.0.0
