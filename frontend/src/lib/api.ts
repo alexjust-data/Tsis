@@ -32,7 +32,9 @@ async function fetchApi<T>(
     (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const fullUrl = `${API_URL}${endpoint}`;
+  console.log("🔴 FETCH URL:", fullUrl);
+  const response = await fetch(fullUrl, {
     ...fetchOptions,
     headers,
   });
@@ -62,7 +64,9 @@ export const authApi = {
     formData.append("username", email);
     formData.append("password", password);
 
-    return fetch(`${API_URL}/auth/login`, {
+    const loginUrl = `${API_URL}/auth/login`;
+    console.log("🟡 LOGIN URL:", loginUrl);
+    return fetch(loginUrl, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formData,
