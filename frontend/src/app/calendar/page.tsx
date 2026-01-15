@@ -1,15 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuthStore } from "@/lib/auth";
 import { dashboardApi, type MonthlyStats, type CalendarDay } from "@/lib/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import AppLayout from "@/components/layout/AppLayout";
 import {
-  TrendingUp,
-  LogOut,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -35,23 +30,13 @@ const MONTHS = [
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function CalendarPage() {
-  const router = useRouter();
-  const { token, user, logout, fetchUser } = useAuthStore();
+  const { token } = useAuthStore();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthStats, setMonthStats] = useState<MonthlyStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth() + 1;
-
-  useEffect(() => {
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    fetchUser();
-  }, [token]);
 
   useEffect(() => {
     if (token) {
@@ -82,9 +67,8 @@ export default function CalendarPage() {
     setCurrentDate(new Date(year, month, 1));
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  const handleToday = () => {
+    setCurrentDate(new Date());
   };
 
   // Build calendar grid
@@ -101,12 +85,10 @@ export default function CalendarPage() {
     const weeks: (CalendarDay | null)[][] = [];
     let currentWeek: (CalendarDay | null)[] = [];
 
-    // Fill empty cells before first day
     for (let i = 0; i < firstDay; i++) {
       currentWeek.push(null);
     }
 
-    // Fill days
     for (let day = 1; day <= daysInMonth; day++) {
       const calendarDay = calendarMap.get(day);
       currentWeek.push(calendarDay || { date: `${year}-${month}-${day}`, pnl: 0, trades: 0, win_rate: 0, is_green: true });
@@ -117,7 +99,6 @@ export default function CalendarPage() {
       }
     }
 
-    // Fill remaining cells
     if (currentWeek.length > 0) {
       while (currentWeek.length < 7) {
         currentWeek.push(null);
@@ -128,225 +109,201 @@ export default function CalendarPage() {
     return weeks;
   };
 
-  if (!token) {
-    return null;
-  }
-
   const weeks = buildCalendarGrid();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-blue-500" />
-            <span className="text-xl font-bold text-white">TSIS.ai</span>
+    <AppLayout>
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Calendar</h1>
+            <p className="text-sm text-gray-400 mt-1">Track your daily trading performance</p>
           </div>
+          <button
+            onClick={loadMonthData}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-4 py-2 bg-[#1e2329] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
 
-          <nav className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/trades">
-              <Button variant="ghost" size="sm">
-                Trades
-              </Button>
-            </Link>
-            <Link href="/calendar">
-              <Button variant="ghost" size="sm" className="bg-slate-800">
-                Calendar
-              </Button>
-            </Link>
-          </nav>
+        {/* Month Navigation */}
+        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={handlePrevMonth}
+              className="flex items-center gap-2 px-4 py-2 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Previous
+            </button>
 
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400">
-              {user?.name || user?.email}
-            </span>
-            <Button variant="ghost" size="icon" onClick={loadMonthData}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                <CalendarIcon className="h-5 w-5 text-green-500" />
+                {MONTHS[month - 1]} {year}
+              </h2>
+              <button
+                onClick={handleToday}
+                className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+              >
+                Today
+              </button>
+            </div>
+
+            <button
+              onClick={handleNextMonth}
+              className="flex items-center gap-2 px-4 py-2 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+            >
+              Next
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between">
-            <Button variant="outline" onClick={handlePrevMonth}>
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <CalendarIcon className="h-6 w-6 text-blue-500" />
-              {MONTHS[month - 1]} {year}
-            </h2>
-
-            <Button variant="outline" onClick={handleNextMonth}>
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-
-          {/* Monthly Stats Summary */}
-          {monthStats && monthStats.total_trades > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-slate-400">Monthly P&L</p>
-                  <p className={`text-xl font-bold ${monthStats.total_pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
-                    {formatCurrency(monthStats.total_pnl)}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-slate-400">Trades</p>
-                  <p className="text-xl font-bold text-white">{monthStats.total_trades}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-slate-400">Win Rate</p>
-                  <p className="text-xl font-bold text-white">{monthStats.win_rate.toFixed(1)}%</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-slate-400">Best Day</p>
-                  <p className="text-xl font-bold text-green-500">{formatCurrency(monthStats.best_day)}</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-slate-800/50 border-slate-700">
-                <CardContent className="pt-4">
-                  <p className="text-xs text-slate-400">Worst Day</p>
-                  <p className="text-xl font-bold text-red-500">{formatCurrency(monthStats.worst_day)}</p>
-                </CardContent>
-              </Card>
+        {/* Monthly Stats Summary */}
+        {monthStats && monthStats.total_trades > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
+              <p className="text-xs text-gray-500 mb-1">Monthly P&L</p>
+              <p className={`text-xl font-bold ${monthStats.total_pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                {formatCurrency(monthStats.total_pnl)}
+              </p>
             </div>
-          )}
 
-          {/* Calendar Grid */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle>Daily Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-64">
-                  <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr>
-                        {DAYS.map((day) => (
-                          <th
-                            key={day}
-                            className="p-2 text-center text-sm font-medium text-slate-400 border-b border-slate-700"
-                          >
-                            {day}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {weeks.map((week, weekIdx) => (
-                        <tr key={weekIdx}>
-                          {week.map((day, dayIdx) => {
-                            if (!day) {
-                              return (
-                                <td
-                                  key={dayIdx}
-                                  className="p-1 border border-slate-700/50 bg-slate-800/30"
-                                />
-                              );
-                            }
+            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
+              <p className="text-xs text-gray-500 mb-1">Trades</p>
+              <p className="text-xl font-bold text-white">{monthStats.total_trades}</p>
+            </div>
 
-                            const dayNum = new Date(day.date).getDate();
-                            const hasTrades = day.trades > 0;
+            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
+              <p className="text-xs text-gray-500 mb-1">Win Rate</p>
+              <p className="text-xl font-bold text-white">{monthStats.win_rate.toFixed(1)}%</p>
+            </div>
 
+            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
+              <p className="text-xs text-gray-500 mb-1">Best Day</p>
+              <p className="text-xl font-bold text-green-500">{formatCurrency(monthStats.best_day)}</p>
+            </div>
+
+            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
+              <p className="text-xs text-gray-500 mb-1">Worst Day</p>
+              <p className="text-xl font-bold text-red-500">{formatCurrency(monthStats.worst_day)}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Calendar Grid */}
+        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139]">
+          <div className="p-4 border-b border-[#2b3139]">
+            <h3 className="text-lg font-semibold text-white">Daily Performance</h3>
+          </div>
+          <div className="p-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <RefreshCw className="h-8 w-8 animate-spin text-green-500" />
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      {DAYS.map((day) => (
+                        <th
+                          key={day}
+                          className="p-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-[#2b3139]"
+                        >
+                          {day}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {weeks.map((week, weekIdx) => (
+                      <tr key={weekIdx}>
+                        {week.map((day, dayIdx) => {
+                          if (!day) {
                             return (
                               <td
                                 key={dayIdx}
-                                className={`p-2 border border-slate-700/50 align-top transition-colors ${
-                                  hasTrades
-                                    ? day.is_green
-                                      ? "bg-green-500/10 hover:bg-green-500/20"
-                                      : "bg-red-500/10 hover:bg-red-500/20"
-                                    : "bg-slate-800/30"
-                                }`}
-                              >
-                                <div className="min-h-[80px]">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-sm font-medium text-slate-400">
-                                      {dayNum}
-                                    </span>
-                                    {hasTrades && (
-                                      <span className="text-xs text-slate-500">
-                                        {day.trades} trades
-                                      </span>
-                                    )}
-                                  </div>
+                                className="p-1 border border-[#2b3139] bg-[#14171c]/50"
+                              />
+                            );
+                          }
 
+                          const dayNum = new Date(day.date).getDate();
+                          const hasTrades = day.trades > 0;
+                          const isToday = new Date().toDateString() === new Date(day.date).toDateString();
+
+                          return (
+                            <td
+                              key={dayIdx}
+                              className={`p-2 border border-[#2b3139] align-top transition-colors ${
+                                hasTrades
+                                  ? day.is_green
+                                    ? "bg-green-500/10 hover:bg-green-500/20"
+                                    : "bg-red-500/10 hover:bg-red-500/20"
+                                  : "bg-[#14171c]/30 hover:bg-[#14171c]/50"
+                              } ${isToday ? "ring-2 ring-green-500 ring-inset" : ""}`}
+                            >
+                              <div className="min-h-[90px]">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className={`text-sm font-medium ${isToday ? "text-green-500" : "text-gray-400"}`}>
+                                    {dayNum}
+                                  </span>
                                   {hasTrades && (
-                                    <div className="space-y-1">
-                                      <p
-                                        className={`text-lg font-bold ${
-                                          day.pnl >= 0 ? "text-green-500" : "text-red-500"
-                                        }`}
-                                      >
-                                        {formatCurrency(day.pnl)}
-                                      </p>
-                                      <p className="text-xs text-slate-400">
-                                        {day.win_rate.toFixed(0)}% WR
-                                      </p>
-                                    </div>
+                                    <span className="text-xs text-gray-500">
+                                      {day.trades} {day.trades === 1 ? "trade" : "trades"}
+                                    </span>
                                   )}
                                 </div>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
-          {/* Legend */}
-          <div className="flex items-center gap-6 justify-center">
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50" />
-              <span className="text-sm text-slate-400">Profitable Day</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-red-500/30 border border-red-500/50" />
-              <span className="text-sm text-slate-400">Loss Day</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 rounded bg-slate-800/50 border border-slate-700" />
-              <span className="text-sm text-slate-400">No Trades</span>
-            </div>
+                                {hasTrades && (
+                                  <div className="space-y-1">
+                                    <p
+                                      className={`text-lg font-bold ${
+                                        day.pnl >= 0 ? "text-green-500" : "text-red-500"
+                                      }`}
+                                    >
+                                      {formatCurrency(day.pnl)}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {day.win_rate.toFixed(0)}% WR
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
-      </main>
-    </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-6 justify-center mt-6">
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50" />
+            <span className="text-sm text-gray-400">Profitable Day</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-red-500/30 border border-red-500/50" />
+            <span className="text-sm text-gray-400">Loss Day</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-[#14171c] border border-[#2b3139]" />
+            <span className="text-sm text-gray-400">No Trades</span>
+          </div>
+        </div>
+      </div>
+    </AppLayout>
   );
 }

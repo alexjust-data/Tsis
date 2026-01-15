@@ -1,17 +1,11 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useAuthStore } from "@/lib/auth";
 import { tradesApi, type Trade } from "@/lib/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import AppLayout from "@/components/layout/AppLayout";
 import {
-  TrendingUp,
   Upload,
-  LogOut,
   RefreshCw,
   Search,
   Trash2,
@@ -20,6 +14,9 @@ import {
   XCircle,
   ArrowUpRight,
   ArrowDownRight,
+  Filter,
+  Download,
+  MoreVertical,
 } from "lucide-react";
 
 function formatCurrency(value: number): string {
@@ -46,12 +43,12 @@ function formatTime(timeStr: string | null): string {
 }
 
 export default function TradesPage() {
-  const router = useRouter();
-  const { token, user, logout, fetchUser } = useAuthStore();
+  const { token } = useAuthStore();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [filteredTrades, setFilteredTrades] = useState<Trade[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sideFilter, setSideFilter] = useState<"all" | "long" | "short">("all");
   const [importStatus, setImportStatus] = useState<{
     show: boolean;
     success: boolean;
@@ -61,26 +58,26 @@ export default function TradesPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!token) {
-      router.push("/login");
-      return;
+    if (token) {
+      loadTrades();
     }
-
-    fetchUser();
-    loadTrades();
   }, [token]);
 
   useEffect(() => {
+    let filtered = trades;
+
     if (searchQuery) {
-      setFilteredTrades(
-        trades.filter((t) =>
-          t.ticker.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+      filtered = filtered.filter((t) =>
+        t.ticker.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    } else {
-      setFilteredTrades(trades);
     }
-  }, [searchQuery, trades]);
+
+    if (sideFilter !== "all") {
+      filtered = filtered.filter((t) => t.side === sideFilter);
+    }
+
+    setFilteredTrades(filtered);
+  }, [searchQuery, sideFilter, trades]);
 
   const loadTrades = async () => {
     if (!token) return;
@@ -139,72 +136,46 @@ export default function TradesPage() {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  // Stats for filtered trades
+  const stats = {
+    total: filteredTrades.length,
+    pnl: filteredTrades.reduce((sum, t) => sum + t.pnl, 0),
+    winners: filteredTrades.filter((t) => t.pnl > 0).length,
+    losers: filteredTrades.filter((t) => t.pnl <= 0).length,
   };
 
-  if (!token) {
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="border-b border-slate-700 bg-slate-900/50 backdrop-blur">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <TrendingUp className="h-8 w-8 text-blue-500" />
-            <span className="text-xl font-bold text-white">TSIS.ai</span>
+    <AppLayout>
+      <div className="p-6">
+        {/* Page Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Trades</h1>
+            <p className="text-sm text-gray-400 mt-1">View and manage your trade history</p>
           </div>
-
-          <nav className="flex items-center gap-4">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm">
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/trades">
-              <Button variant="ghost" size="sm" className="bg-slate-800">
-                Trades
-              </Button>
-            </Link>
-            <Link href="/calendar">
-              <Button variant="ghost" size="sm">
-                Calendar
-              </Button>
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400">
-              {user?.name || user?.email}
-            </span>
-            <Button variant="ghost" size="icon" onClick={loadTrades}>
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={loadTrades}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1e2329] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
         </div>
-      </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <div className="space-y-6">
-          {/* Import Section */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                Import Trades
-              </CardTitle>
-              <CardDescription>
-                Upload a CSV or Excel file with your trades. Expected columns: date, ticker, side (Long/Short), entry_price, exit_price, shares, pnl
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+        {/* Import Section */}
+        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-5 mb-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                <h3 className="text-lg font-semibold text-white">Import Trades</h3>
+              </div>
+              <p className="text-sm text-gray-400 mb-4">
+                Upload a CSV or Excel file. Expected columns: date, ticker, side, entry_price, exit_price, shares, pnl
+              </p>
               <div className="flex items-center gap-4">
                 <input
                   ref={fileInputRef}
@@ -214,143 +185,190 @@ export default function TradesPage() {
                   className="hidden"
                   id="file-upload"
                 />
-                <Button
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
                 >
-                  <Upload className="mr-2 h-4 w-4" />
+                  <Upload className="h-4 w-4" />
                   Choose File
-                </Button>
+                </button>
 
                 {importStatus?.show && (
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded ${
-                    importStatus.success ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                    importStatus.success
+                      ? "bg-green-500/20 text-green-500"
+                      : "bg-red-500/20 text-red-500"
                   }`}>
                     {importStatus.success ? (
                       <CheckCircle className="h-4 w-4" />
                     ) : (
                       <XCircle className="h-4 w-4" />
                     )}
-                    {importStatus.message}
+                    <span className="text-sm">{importStatus.message}</span>
                   </div>
                 )}
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Trades List */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Trade History</CardTitle>
-                  <CardDescription>
-                    {trades.length} total trades
-                  </CardDescription>
-                </div>
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                  <Input
-                    placeholder="Search by ticker..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
-                </div>
-              ) : filteredTrades.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileSpreadsheet className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                  <p className="text-slate-400">
-                    {trades.length === 0
-                      ? "No trades yet. Import your first trades above."
-                      : "No trades match your search."}
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-slate-700">
-                        <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Date</th>
-                        <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Ticker</th>
-                        <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Side</th>
-                        <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Entry</th>
-                        <th className="text-left py-3 px-2 text-xs font-medium text-slate-400">Exit</th>
-                        <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Shares</th>
-                        <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">P&L</th>
-                        <th className="text-right py-3 px-2 text-xs font-medium text-slate-400">Time</th>
-                        <th className="text-right py-3 px-2 text-xs font-medium text-slate-400"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredTrades.map((trade) => (
-                        <tr key={trade.id} className="border-b border-slate-700/50 hover:bg-slate-700/30">
-                          <td className="py-3 px-2 text-sm text-slate-300">
-                            {formatDate(trade.date)}
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className="font-mono font-bold text-white">
-                              {trade.ticker}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
-                              trade.side === "long"
-                                ? "bg-green-500/20 text-green-500"
-                                : "bg-red-500/20 text-red-500"
-                            }`}>
-                              {trade.side === "long" ? (
-                                <ArrowUpRight className="h-3 w-3" />
-                              ) : (
-                                <ArrowDownRight className="h-3 w-3" />
-                              )}
-                              {trade.side.toUpperCase()}
-                            </span>
-                          </td>
-                          <td className="py-3 px-2 text-sm text-slate-300 font-mono">
-                            ${trade.entry_price.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-2 text-sm text-slate-300 font-mono">
-                            ${trade.exit_price.toFixed(2)}
-                          </td>
-                          <td className="py-3 px-2 text-sm text-slate-300 text-right">
-                            {trade.shares}
-                          </td>
-                          <td className={`py-3 px-2 text-sm font-bold text-right ${
-                            trade.pnl >= 0 ? "text-green-500" : "text-red-500"
-                          }`}>
-                            {formatCurrency(trade.pnl)}
-                          </td>
-                          <td className="py-3 px-2 text-sm text-slate-400 text-right">
-                            {formatTime(trade.entry_time)} - {formatTime(trade.exit_time)}
-                          </td>
-                          <td className="py-3 px-2 text-right">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-slate-400 hover:text-red-500"
-                              onClick={() => handleDeleteTrade(trade.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+            </div>
+            <button className="text-gray-400 hover:text-white">
+              <Download className="h-5 w-5" />
+            </button>
+          </div>
         </div>
-      </main>
-    </div>
+
+        {/* Filters & Stats */}
+        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] mb-6">
+          <div className="p-4 flex items-center justify-between border-b border-[#2b3139]">
+            {/* Search & Filters */}
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <input
+                  placeholder="Search ticker..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-[200px] h-9 pl-10 pr-4 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-green-500/50 transition-colors"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 bg-[#0b0e11] rounded-lg p-1">
+                {["all", "long", "short"].map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setSideFilter(filter as typeof sideFilter)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                      sideFilter === filter
+                        ? "bg-[#2b3139] text-white"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-xs text-gray-500">Trades</p>
+                <p className="text-sm font-bold text-white">{stats.total}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">P&L</p>
+                <p className={`text-sm font-bold ${stats.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  {formatCurrency(stats.pnl)}
+                </p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-gray-500">W/L</p>
+                <p className="text-sm font-bold text-white">
+                  <span className="text-green-500">{stats.winners}</span>
+                  {" / "}
+                  <span className="text-red-500">{stats.losers}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <RefreshCw className="h-6 w-6 animate-spin text-green-500" />
+              </div>
+            ) : filteredTrades.length === 0 ? (
+              <div className="text-center py-12">
+                <FileSpreadsheet className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">
+                  {trades.length === 0
+                    ? "No trades yet. Import your first trades above."
+                    : "No trades match your filters."}
+                </p>
+              </div>
+            ) : (
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[#14171c]">
+                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Entry</th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Exit</th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Shares</th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">P&L</th>
+                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                    <th className="w-12"></th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#2b3139]">
+                  {filteredTrades.map((trade) => (
+                    <tr key={trade.id} className="hover:bg-[#14171c] transition-colors">
+                      <td className="py-3 px-4 text-sm text-gray-300">
+                        {formatDate(trade.date)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="font-mono font-bold text-white">
+                          {trade.ticker}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                          trade.side === "long"
+                            ? "bg-green-500/20 text-green-500"
+                            : "bg-red-500/20 text-red-500"
+                        }`}>
+                          {trade.side === "long" ? (
+                            <ArrowUpRight className="h-3 w-3" />
+                          ) : (
+                            <ArrowDownRight className="h-3 w-3" />
+                          )}
+                          {trade.side.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-300 text-right font-mono">
+                        ${trade.entry_price.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-300 text-right font-mono">
+                        ${trade.exit_price.toFixed(2)}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-300 text-right">
+                        {trade.shares.toLocaleString()}
+                      </td>
+                      <td className={`py-3 px-4 text-sm font-bold text-right ${
+                        trade.pnl >= 0 ? "text-green-500" : "text-red-500"
+                      }`}>
+                        {formatCurrency(trade.pnl)}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-gray-400 text-right">
+                        {formatTime(trade.entry_time)} - {formatTime(trade.exit_time)}
+                      </td>
+                      <td className="py-3 px-4">
+                        <button
+                          onClick={() => handleDeleteTrade(trade.id)}
+                          className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-500/10 transition-colors"
+                          title="Delete trade"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Pagination placeholder */}
+          {filteredTrades.length > 0 && (
+            <div className="p-4 border-t border-[#2b3139] flex items-center justify-between">
+              <p className="text-sm text-gray-400">
+                Showing {filteredTrades.length} of {trades.length} trades
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </AppLayout>
   );
 }
