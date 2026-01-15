@@ -4,107 +4,119 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
-  LineChart,
+  BarChart3,
   FileText,
   BookOpen,
-  Calendar,
-  Users,
-  Upload,
-  Settings,
   PlusCircle,
+  Users,
   Search,
-  Tag,
+  Calendar,
+  Upload,
 } from 'lucide-react';
 
-interface SidebarItem {
+interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
-  badge?: string;
 }
 
-const MAIN_ITEMS: SidebarItem[] = [
+const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/reports', label: 'Reports', icon: LineChart },
-];
-
-const TRADES_ITEMS: SidebarItem[] = [
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/trades', label: 'Trades', icon: FileText },
-  { href: '/trades/new', label: 'New Trade', icon: PlusCircle },
-  { href: '/trades/import', label: 'Import', icon: Upload },
-  { href: '/trades/search', label: 'Search', icon: Search },
-];
-
-const JOURNAL_ITEMS: SidebarItem[] = [
   { href: '/journal', label: 'Journal', icon: BookOpen },
-  { href: '/calendar', label: 'Calendar', icon: Calendar },
-  { href: '/tags', label: 'Tags', icon: Tag },
-];
-
-const BOTTOM_ITEMS: SidebarItem[] = [
+  { href: '/trades/new', label: 'New Trade', icon: PlusCircle },
   { href: '/community', label: 'Community', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/search', label: 'Search', icon: Search },
 ];
 
-function SidebarSection({ title, items }: { title?: string; items: SidebarItem[] }) {
+const SECONDARY_ITEMS: NavItem[] = [
+  { href: '/calendar', label: 'Calendar', icon: Calendar },
+];
+
+export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="mb-4">
-      {title && (
-        <h3 className="px-4 mb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          {title}
-        </h3>
-      )}
-      <ul className="space-y-1">
-        {items.map((item) => {
-          const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
-          const Icon = item.icon;
-
-          return (
-            <li key={item.href}>
-              <Link
-                href={item.href}
-                className={`flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'text-green-500 bg-green-500/10 border-l-2 border-green-500'
-                    : 'text-gray-400 hover:text-white hover:bg-[#1e2329] border-l-2 border-transparent'
-                }`}
-              >
-                <Icon className="h-4 w-4 flex-shrink-0" />
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="ml-auto px-2 py-0.5 text-xs bg-green-500/20 text-green-500 rounded-full">
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-export default function Sidebar() {
-  return (
-    <aside className="w-[220px] bg-[#0b0e11] border-r border-[#1e2329] flex flex-col h-full">
-      {/* Main Navigation */}
-      <div className="flex-1 py-4 overflow-y-auto">
-        <SidebarSection items={MAIN_ITEMS} />
-        <SidebarSection title="Trades" items={TRADES_ITEMS} />
-        <SidebarSection title="Analysis" items={JOURNAL_ITEMS} />
+    <aside className="w-[260px] bg-[#14161d] flex flex-col h-full">
+      {/* Logo */}
+      <div className="h-[60px] flex items-center px-5 border-b border-[#2d3139]">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded bg-[#00a449] flex items-center justify-center">
+            <span className="text-white font-bold text-sm">T</span>
+          </div>
+          <span className="text-white font-semibold text-lg">TSIS.ai</span>
+        </Link>
       </div>
 
-      {/* Bottom Section */}
-      <div className="border-t border-[#1e2329] py-4">
-        <SidebarSection items={BOTTOM_ITEMS} />
+      {/* Navigation */}
+      <nav className="flex-1 py-4 overflow-y-auto">
+        <ul className="space-y-0.5">
+          {NAV_ITEMS.map((item) => {
+            const isActive = pathname === item.href ||
+              (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+            const Icon = item.icon;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-5 py-2.5 text-[14px] transition-colors ${
+                    isActive
+                      ? 'text-[#00a449] bg-[#00a449]/10'
+                      : 'text-[#707990] hover:text-white hover:bg-[#22262f]'
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+
+        {/* Divider */}
+        <div className="my-4 mx-5 border-t border-[#2d3139]" />
+
+        {/* Secondary Items */}
+        <ul className="space-y-0.5">
+          {SECONDARY_ITEMS.map((item) => {
+            const isActive = pathname === item.href;
+            const Icon = item.icon;
+
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={`flex items-center gap-3 px-5 py-2.5 text-[14px] transition-colors ${
+                    isActive
+                      ? 'text-[#00a449] bg-[#00a449]/10'
+                      : 'text-[#707990] hover:text-white hover:bg-[#22262f]'
+                  }`}
+                >
+                  <Icon className="h-[18px] w-[18px]" />
+                  <span>{item.label}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+
+      {/* Bottom - Import Button */}
+      <div className="p-4 border-t border-[#2d3139]">
+        <Link
+          href="/trades"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-[#00a449] hover:bg-[#00a449]/90 text-white text-[14px] font-medium rounded transition-colors"
+        >
+          <Upload className="h-4 w-4" />
+          <span>Import Trades</span>
+        </Link>
 
         {/* Version */}
-        <div className="px-4 mt-4">
-          <p className="text-xs text-gray-600">TSIS.ai v1.0</p>
-        </div>
+        <p className="text-center text-[11px] text-[#707990] mt-3">
+          TSIS.ai v1.0
+        </p>
       </div>
     </aside>
   );

@@ -52,6 +52,35 @@ const config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
+                // Finviz exact colors
+                finviz: {
+                    bg: {
+                        DEFAULT: "#22262f",
+                        dark: "#14161d",
+                        card: "#1a1d24",
+                    },
+                    text: {
+                        DEFAULT: "#ffffff",
+                        muted: "#707990",
+                        dim: "#5a6478",
+                    },
+                    profit: {
+                        DEFAULT: "#00a449",
+                        dark: "#19803d",
+                        light: "#00c853",
+                    },
+                    loss: {
+                        DEFAULT: "#d91e2b",
+                        dark: "#b71c1c",
+                        light: "#fb5057",
+                    },
+                    blue: {
+                        DEFAULT: "#2f91ef",
+                        dark: "#1976d2",
+                        light: "#64b5f6",
+                    },
+                    border: "#2d3139",
+                },
             },
             borderRadius: {
                 lg: "var(--radius)",

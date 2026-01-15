@@ -14,9 +14,7 @@ import {
   XCircle,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
   Download,
-  MoreVertical,
 } from "lucide-react";
 
 function formatCurrency(value: number): string {
@@ -151,13 +149,13 @@ export default function TradesPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">Trades</h1>
-            <p className="text-sm text-gray-400 mt-1">View and manage your trade history</p>
+            <p className="text-[13px] text-[#707990] mt-1">View and manage your trade history</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               onClick={loadTrades}
               disabled={isLoading}
-              className="flex items-center gap-2 px-4 py-2 bg-[#1e2329] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2 bg-[#14161d] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Refresh
@@ -166,14 +164,14 @@ export default function TradesPage() {
         </div>
 
         {/* Import Section */}
-        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-5 mb-6">
+        <div className="bg-[#14161d] rounded border border-[#2d3139] p-5 mb-6">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <FileSpreadsheet className="h-5 w-5 text-green-500" />
+                <FileSpreadsheet className="h-5 w-5 text-[#00a449]" />
                 <h3 className="text-lg font-semibold text-white">Import Trades</h3>
               </div>
-              <p className="text-sm text-gray-400 mb-4">
+              <p className="text-[13px] text-[#707990] mb-4">
                 Upload a CSV or Excel file. Expected columns: date, ticker, side, entry_price, exit_price, shares, pnl
               </p>
               <div className="flex items-center gap-4">
@@ -188,58 +186,58 @@ export default function TradesPage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#00a449] hover:bg-[#00a449]/90 text-white rounded transition-colors disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
                   Choose File
                 </button>
 
                 {importStatus?.show && (
-                  <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
+                  <div className={`flex items-center gap-2 px-4 py-2 rounded ${
                     importStatus.success
-                      ? "bg-green-500/20 text-green-500"
-                      : "bg-red-500/20 text-red-500"
+                      ? "bg-[#00a449]/15 text-[#00a449]"
+                      : "bg-[#d91e2b]/15 text-[#d91e2b]"
                   }`}>
                     {importStatus.success ? (
                       <CheckCircle className="h-4 w-4" />
                     ) : (
                       <XCircle className="h-4 w-4" />
                     )}
-                    <span className="text-sm">{importStatus.message}</span>
+                    <span className="text-[13px]">{importStatus.message}</span>
                   </div>
                 )}
               </div>
             </div>
-            <button className="text-gray-400 hover:text-white">
+            <button className="text-[#707990] hover:text-white transition-colors">
               <Download className="h-5 w-5" />
             </button>
           </div>
         </div>
 
         {/* Filters & Stats */}
-        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] mb-6">
-          <div className="p-4 flex items-center justify-between border-b border-[#2b3139]">
+        <div className="bg-[#14161d] rounded border border-[#2d3139] mb-6">
+          <div className="p-4 flex items-center justify-between border-b border-[#2d3139]">
             {/* Search & Filters */}
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#707990]" />
                 <input
                   placeholder="Search ticker..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-[200px] h-9 pl-10 pr-4 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-sm text-gray-300 placeholder-gray-500 focus:outline-none focus:border-green-500/50 transition-colors"
+                  className="w-[200px] h-9 pl-10 pr-4 bg-[#22262f] border border-[#2d3139] rounded text-[14px] text-white placeholder-[#707990] focus:outline-none focus:border-[#00a449]/50 transition-colors"
                 />
               </div>
 
-              <div className="flex items-center gap-1 bg-[#0b0e11] rounded-lg p-1">
+              <div className="flex items-center gap-1 bg-[#22262f] rounded p-1">
                 {["all", "long", "short"].map((filter) => (
                   <button
                     key={filter}
                     onClick={() => setSideFilter(filter as typeof sideFilter)}
-                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                    className={`px-3 py-1.5 text-[12px] font-medium rounded transition-colors ${
                       sideFilter === filter
-                        ? "bg-[#2b3139] text-white"
-                        : "text-gray-400 hover:text-white"
+                        ? "bg-[#14161d] text-white"
+                        : "text-[#707990] hover:text-white"
                     }`}
                   >
                     {filter.charAt(0).toUpperCase() + filter.slice(1)}
@@ -251,21 +249,21 @@ export default function TradesPage() {
             {/* Stats */}
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <p className="text-xs text-gray-500">Trades</p>
-                <p className="text-sm font-bold text-white">{stats.total}</p>
+                <p className="text-[12px] text-[#707990]">Trades</p>
+                <p className="text-[14px] font-bold text-white">{stats.total}</p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-gray-500">P&L</p>
-                <p className={`text-sm font-bold ${stats.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                <p className="text-[12px] text-[#707990]">P&L</p>
+                <p className={`text-[14px] font-bold ${stats.pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
                   {formatCurrency(stats.pnl)}
                 </p>
               </div>
               <div className="text-center">
-                <p className="text-xs text-gray-500">W/L</p>
-                <p className="text-sm font-bold text-white">
-                  <span className="text-green-500">{stats.winners}</span>
+                <p className="text-[12px] text-[#707990]">W/L</p>
+                <p className="text-[14px] font-bold text-white">
+                  <span className="text-[#00a449]">{stats.winners}</span>
                   {" / "}
-                  <span className="text-red-500">{stats.losers}</span>
+                  <span className="text-[#d91e2b]">{stats.losers}</span>
                 </p>
               </div>
             </div>
@@ -275,12 +273,12 @@ export default function TradesPage() {
           <div className="overflow-x-auto">
             {isLoading ? (
               <div className="flex items-center justify-center h-32">
-                <RefreshCw className="h-6 w-6 animate-spin text-green-500" />
+                <RefreshCw className="h-6 w-6 animate-spin text-[#00a449]" />
               </div>
             ) : filteredTrades.length === 0 ? (
               <div className="text-center py-12">
-                <FileSpreadsheet className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-400">
+                <FileSpreadsheet className="h-12 w-12 text-[#707990] mx-auto mb-4" />
+                <p className="text-[#707990]">
                   {trades.length === 0
                     ? "No trades yet. Import your first trades above."
                     : "No trades match your filters."}
@@ -289,22 +287,22 @@ export default function TradesPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="bg-[#14171c]">
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Ticker</th>
-                    <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Side</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Entry</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Exit</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Shares</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">P&L</th>
-                    <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <tr className="bg-[#22262f]">
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Date</th>
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Ticker</th>
+                    <th className="text-left py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Side</th>
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Entry</th>
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Exit</th>
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Shares</th>
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">P&L</th>
+                    <th className="text-right py-3 px-4 text-[12px] font-medium text-[#707990] uppercase tracking-wider">Time</th>
                     <th className="w-12"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#2b3139]">
+                <tbody className="divide-y divide-[#2d3139]">
                   {filteredTrades.map((trade) => (
-                    <tr key={trade.id} className="hover:bg-[#14171c] transition-colors">
-                      <td className="py-3 px-4 text-sm text-gray-300">
+                    <tr key={trade.id} className="hover:bg-[#22262f] transition-colors">
+                      <td className="py-3 px-4 text-[14px] text-[#707990]">
                         {formatDate(trade.date)}
                       </td>
                       <td className="py-3 px-4">
@@ -313,10 +311,10 @@ export default function TradesPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium ${
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[12px] font-medium ${
                           trade.side === "long"
-                            ? "bg-green-500/20 text-green-500"
-                            : "bg-red-500/20 text-red-500"
+                            ? "bg-[#00a449]/15 text-[#00a449]"
+                            : "bg-[#d91e2b]/15 text-[#d91e2b]"
                         }`}>
                           {trade.side === "long" ? (
                             <ArrowUpRight className="h-3 w-3" />
@@ -326,27 +324,27 @@ export default function TradesPage() {
                           {trade.side.toUpperCase()}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-300 text-right font-mono">
+                      <td className="py-3 px-4 text-[14px] text-[#707990] text-right font-mono">
                         ${trade.entry_price.toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-300 text-right font-mono">
+                      <td className="py-3 px-4 text-[14px] text-[#707990] text-right font-mono">
                         ${trade.exit_price.toFixed(2)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-300 text-right">
+                      <td className="py-3 px-4 text-[14px] text-[#707990] text-right">
                         {trade.shares.toLocaleString()}
                       </td>
-                      <td className={`py-3 px-4 text-sm font-bold text-right ${
-                        trade.pnl >= 0 ? "text-green-500" : "text-red-500"
+                      <td className={`py-3 px-4 text-[14px] font-bold text-right ${
+                        trade.pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"
                       }`}>
                         {formatCurrency(trade.pnl)}
                       </td>
-                      <td className="py-3 px-4 text-sm text-gray-400 text-right">
+                      <td className="py-3 px-4 text-[14px] text-[#707990] text-right">
                         {formatTime(trade.entry_time)} - {formatTime(trade.exit_time)}
                       </td>
                       <td className="py-3 px-4">
                         <button
                           onClick={() => handleDeleteTrade(trade.id)}
-                          className="p-1.5 text-gray-400 hover:text-red-500 rounded hover:bg-red-500/10 transition-colors"
+                          className="p-1.5 text-[#707990] hover:text-[#d91e2b] rounded hover:bg-[#d91e2b]/10 transition-colors"
                           title="Delete trade"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -361,8 +359,8 @@ export default function TradesPage() {
 
           {/* Pagination placeholder */}
           {filteredTrades.length > 0 && (
-            <div className="p-4 border-t border-[#2b3139] flex items-center justify-between">
-              <p className="text-sm text-gray-400">
+            <div className="p-4 border-t border-[#2d3139] flex items-center justify-between">
+              <p className="text-[13px] text-[#707990]">
                 Showing {filteredTrades.length} of {trades.length} trades
               </p>
             </div>

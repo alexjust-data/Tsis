@@ -24,18 +24,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-[#0b0e11] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-green-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#14161d] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#00a449] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0e11] flex flex-col">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-y-auto bg-[#14171c]">
+    <div className="min-h-screen bg-[#14161d] flex">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto bg-[#22262f]">
           {children}
         </main>
       </div>

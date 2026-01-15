@@ -15,7 +15,6 @@ import {
   RefreshCw,
   ArrowUpRight,
   ArrowDownRight,
-  Activity,
   Zap,
 } from "lucide-react";
 import Link from "next/link";
@@ -40,51 +39,48 @@ function StatCard({
   value,
   subValue,
   icon: Icon,
-  trend,
-  color = "default",
+  valueColor = "white",
 }: {
   title: string;
   value: string;
   subValue?: string;
   icon: React.ElementType;
-  trend?: "up" | "down";
-  color?: "default" | "green" | "red" | "blue";
+  valueColor?: "white" | "profit" | "loss";
 }) {
-  const colorClasses = {
-    default: "text-white",
-    green: "text-green-500",
-    red: "text-red-500",
-    blue: "text-blue-500",
+  const colorClass = {
+    white: "text-white",
+    profit: "text-[#00a449]",
+    loss: "text-[#d91e2b]",
   };
 
   return (
-    <div className="bg-[#1e2329] rounded-lg p-4 border border-[#2b3139] hover:border-[#3b4149] transition-colors">
+    <div className="bg-[#14161d] rounded p-4 border border-[#2d3139]">
       <div className="flex items-start justify-between mb-3">
-        <span className="text-sm text-gray-400">{title}</span>
-        <Icon className="h-4 w-4 text-gray-500" />
+        <span className="text-[13px] text-[#707990]">{title}</span>
+        <Icon className="h-4 w-4 text-[#707990]" />
       </div>
-      <div className={`text-2xl font-bold ${colorClasses[color]}`}>
+      <div className={`text-2xl font-bold ${colorClass[valueColor]}`}>
         {value}
       </div>
       {subValue && (
-        <p className="text-xs text-gray-500 mt-1">{subValue}</p>
+        <p className="text-[12px] text-[#707990] mt-1">{subValue}</p>
       )}
     </div>
   );
 }
 
 // Mini Stat Component
-function MiniStat({ label, value, color }: { label: string; value: string; color: "green" | "red" | "white" }) {
-  const colorClasses = {
-    green: "text-green-500",
-    red: "text-red-500",
+function MiniStat({ label, value, color }: { label: string; value: string; color: "profit" | "loss" | "white" }) {
+  const colorClass = {
+    profit: "text-[#00a449]",
+    loss: "text-[#d91e2b]",
     white: "text-white",
   };
 
   return (
     <div className="text-center">
-      <p className="text-xs text-gray-500 mb-1">{label}</p>
-      <p className={`text-lg font-bold ${colorClasses[color]}`}>{value}</p>
+      <p className="text-[12px] text-[#707990] mb-1">{label}</p>
+      <p className={`text-lg font-bold ${colorClass[color]}`}>{value}</p>
     </div>
   );
 }
@@ -130,12 +126,12 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-sm text-gray-400 mt-1">Your trading performance overview</p>
+            <p className="text-[13px] text-[#707990] mt-1">Your trading performance overview</p>
           </div>
           <button
             onClick={loadData}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1e2329] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#14161d] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -144,7 +140,7 @@ export default function DashboardPage() {
 
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <RefreshCw className="h-8 w-8 animate-spin text-green-500" />
+            <RefreshCw className="h-8 w-8 animate-spin text-[#00a449]" />
           </div>
         ) : metrics ? (
           <div className="space-y-6">
@@ -155,43 +151,43 @@ export default function DashboardPage() {
                 value={formatCurrency(metrics.total_pnl)}
                 subValue={`${metrics.total_trades} trades`}
                 icon={DollarSign}
-                color={metrics.total_pnl >= 0 ? "green" : "red"}
+                valueColor={metrics.total_pnl >= 0 ? "profit" : "loss"}
               />
               <StatCard
                 title="Win Rate"
                 value={formatPercent(metrics.win_rate)}
                 subValue={`${metrics.winning_trades}W / ${metrics.losing_trades}L`}
                 icon={Target}
-                color={metrics.win_rate >= 50 ? "green" : "red"}
+                valueColor={metrics.win_rate >= 50 ? "profit" : "loss"}
               />
               <StatCard
                 title="Profit Factor"
                 value={metrics.profit_factor.toFixed(2)}
                 subValue={`Avg Win: ${formatCurrency(metrics.avg_win)}`}
                 icon={BarChart3}
-                color={metrics.profit_factor >= 1 ? "green" : "red"}
+                valueColor={metrics.profit_factor >= 1 ? "profit" : "loss"}
               />
               <StatCard
                 title="Today"
                 value={formatCurrency(metrics.today_pnl)}
                 subValue={`Week: ${formatCurrency(metrics.week_pnl)}`}
                 icon={Calendar}
-                color={metrics.today_pnl >= 0 ? "green" : "red"}
+                valueColor={metrics.today_pnl >= 0 ? "profit" : "loss"}
               />
             </div>
 
             {/* Long/Short Performance */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-5">
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <ArrowUpRight className="h-5 w-5 text-green-500" />
+                  <ArrowUpRight className="h-5 w-5 text-[#00a449]" />
                   <h3 className="text-lg font-semibold text-white">Long Trades</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <MiniStat
                     label="P&L"
                     value={formatCurrency(metrics.long_pnl)}
-                    color={metrics.long_pnl >= 0 ? "green" : "red"}
+                    color={metrics.long_pnl >= 0 ? "profit" : "loss"}
                   />
                   <MiniStat
                     label="Trades"
@@ -201,21 +197,21 @@ export default function DashboardPage() {
                   <MiniStat
                     label="Win Rate"
                     value={formatPercent(metrics.long_win_rate)}
-                    color={metrics.long_win_rate >= 50 ? "green" : "red"}
+                    color={metrics.long_win_rate >= 50 ? "profit" : "loss"}
                   />
                 </div>
               </div>
 
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-5">
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <ArrowDownRight className="h-5 w-5 text-red-500" />
+                  <ArrowDownRight className="h-5 w-5 text-[#d91e2b]" />
                   <h3 className="text-lg font-semibold text-white">Short Trades</h3>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <MiniStat
                     label="P&L"
                     value={formatCurrency(metrics.short_pnl)}
-                    color={metrics.short_pnl >= 0 ? "green" : "red"}
+                    color={metrics.short_pnl >= 0 ? "profit" : "loss"}
                   />
                   <MiniStat
                     label="Trades"
@@ -225,7 +221,7 @@ export default function DashboardPage() {
                   <MiniStat
                     label="Win Rate"
                     value={formatPercent(metrics.short_win_rate)}
-                    color={metrics.short_win_rate >= 50 ? "green" : "red"}
+                    color={metrics.short_win_rate >= 50 ? "profit" : "loss"}
                   />
                 </div>
               </div>
@@ -234,32 +230,32 @@ export default function DashboardPage() {
             {/* Tickers & Recent Trades */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Top Tickers */}
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139]">
-                <div className="p-4 border-b border-[#2b3139]">
+              <div className="bg-[#14161d] rounded border border-[#2d3139]">
+                <div className="p-4 border-b border-[#2d3139]">
                   <h3 className="text-lg font-semibold text-white">Top Tickers</h3>
-                  <p className="text-xs text-gray-500">By total P&L</p>
+                  <p className="text-[12px] text-[#707990]">By total P&L</p>
                 </div>
                 <div className="p-4">
                   {tickers.length === 0 ? (
-                    <p className="text-gray-500 text-sm text-center py-4">No trades yet</p>
+                    <p className="text-[#707990] text-[14px] text-center py-4">No trades yet</p>
                   ) : (
                     <div className="space-y-3">
                       {tickers.map((ticker, index) => (
-                        <div key={ticker.ticker} className="flex items-center justify-between py-2 border-b border-[#2b3139] last:border-0">
+                        <div key={ticker.ticker} className="flex items-center justify-between py-2 border-b border-[#2d3139] last:border-0">
                           <div className="flex items-center gap-3">
-                            <span className="w-6 h-6 flex items-center justify-center text-xs font-medium text-gray-500 bg-[#2b3139] rounded">
+                            <span className="w-6 h-6 flex items-center justify-center text-[12px] font-medium text-[#707990] bg-[#22262f] rounded">
                               {index + 1}
                             </span>
                             <div>
                               <span className="font-mono font-bold text-white">{ticker.ticker}</span>
-                              <span className="text-xs text-gray-500 ml-2">{ticker.trades} trades</span>
+                              <span className="text-[12px] text-[#707990] ml-2">{ticker.trades} trades</span>
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className={`font-bold ${ticker.total_pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                            <p className={`font-bold ${ticker.total_pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
                               {formatCurrency(ticker.total_pnl)}
                             </p>
-                            <p className="text-xs text-gray-500">{formatPercent(ticker.win_rate)} WR</p>
+                            <p className="text-[12px] text-[#707990]">{formatPercent(ticker.win_rate)} WR</p>
                           </div>
                         </div>
                       ))}
@@ -269,15 +265,15 @@ export default function DashboardPage() {
               </div>
 
               {/* Recent Trades */}
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139]">
-                <div className="p-4 border-b border-[#2b3139] flex items-center justify-between">
+              <div className="bg-[#14161d] rounded border border-[#2d3139]">
+                <div className="p-4 border-b border-[#2d3139] flex items-center justify-between">
                   <div>
                     <h3 className="text-lg font-semibold text-white">Recent Trades</h3>
-                    <p className="text-xs text-gray-500">Last 8 trades</p>
+                    <p className="text-[12px] text-[#707990]">Last 8 trades</p>
                   </div>
                   <Link
                     href="/trades"
-                    className="text-sm text-green-500 hover:text-green-400 transition-colors"
+                    className="text-[14px] text-[#00a449] hover:text-[#00a449]/80 transition-colors"
                   >
                     View All
                   </Link>
@@ -285,11 +281,11 @@ export default function DashboardPage() {
                 <div className="p-4">
                   {recentTrades.length === 0 ? (
                     <div className="text-center py-8">
-                      <Upload className="h-10 w-10 text-gray-600 mx-auto mb-3" />
-                      <p className="text-gray-400 mb-3 text-sm">No trades yet</p>
+                      <Upload className="h-10 w-10 text-[#707990] mx-auto mb-3" />
+                      <p className="text-[#707990] mb-3 text-[14px]">No trades yet</p>
                       <Link
-                        href="/trades/import"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg transition-colors"
+                        href="/trades"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-[#00a449] hover:bg-[#00a449]/90 text-white text-[14px] rounded transition-colors"
                       >
                         <Upload className="h-4 w-4" />
                         Import Trades
@@ -298,19 +294,19 @@ export default function DashboardPage() {
                   ) : (
                     <div className="space-y-2">
                       {recentTrades.map((trade) => (
-                        <div key={trade.id} className="flex items-center justify-between py-2 border-b border-[#2b3139] last:border-0">
+                        <div key={trade.id} className="flex items-center justify-between py-2 border-b border-[#2d3139] last:border-0">
                           <div className="flex items-center gap-3">
-                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
+                            <span className={`px-2 py-0.5 rounded text-[12px] font-medium ${
                               trade.side === "long"
-                                ? "bg-green-500/20 text-green-500"
-                                : "bg-red-500/20 text-red-500"
+                                ? "bg-[#00a449]/15 text-[#00a449]"
+                                : "bg-[#d91e2b]/15 text-[#d91e2b]"
                             }`}>
                               {trade.side.toUpperCase()}
                             </span>
                             <span className="font-mono font-bold text-white">{trade.ticker}</span>
-                            <span className="text-xs text-gray-500">{trade.shares} shares</span>
+                            <span className="text-[12px] text-[#707990]">{trade.shares} shares</span>
                           </div>
-                          <span className={`font-bold ${trade.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          <span className={`font-bold ${trade.pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
                             {formatCurrency(trade.pnl)}
                           </span>
                         </div>
@@ -323,56 +319,56 @@ export default function DashboardPage() {
 
             {/* Extremes & Streaks */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 text-center">
-                <p className="text-xs text-gray-500 mb-2">Best Trade</p>
-                <p className="text-xl font-bold text-green-500">{formatCurrency(metrics.best_trade)}</p>
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 text-center">
+                <p className="text-[12px] text-[#707990] mb-2">Best Trade</p>
+                <p className="text-xl font-bold text-[#00a449]">{formatCurrency(metrics.best_trade)}</p>
               </div>
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 text-center">
-                <p className="text-xs text-gray-500 mb-2">Worst Trade</p>
-                <p className="text-xl font-bold text-red-500">{formatCurrency(metrics.worst_trade)}</p>
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 text-center">
+                <p className="text-[12px] text-[#707990] mb-2">Worst Trade</p>
+                <p className="text-xl font-bold text-[#d91e2b]">{formatCurrency(metrics.worst_trade)}</p>
               </div>
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 text-center">
-                <p className="text-xs text-gray-500 mb-2">Best Day</p>
-                <p className="text-xl font-bold text-green-500">{formatCurrency(metrics.best_day)}</p>
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 text-center">
+                <p className="text-[12px] text-[#707990] mb-2">Best Day</p>
+                <p className="text-xl font-bold text-[#00a449]">{formatCurrency(metrics.best_day)}</p>
               </div>
-              <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 text-center">
-                <p className="text-xs text-gray-500 mb-2">Worst Day</p>
-                <p className="text-xl font-bold text-red-500">{formatCurrency(metrics.worst_day)}</p>
+              <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 text-center">
+                <p className="text-[12px] text-[#707990] mb-2">Worst Day</p>
+                <p className="text-xl font-bold text-[#d91e2b]">{formatCurrency(metrics.worst_day)}</p>
               </div>
             </div>
 
             {/* Streaks */}
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-5">
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Zap className="h-5 w-5 text-yellow-500" />
+                <Zap className="h-5 w-5 text-[#2f91ef]" />
                 <h3 className="text-lg font-semibold text-white">Streaks</h3>
               </div>
               <div className="grid grid-cols-3 gap-8">
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-2">Current Streak</p>
-                  <p className={`text-3xl font-bold ${metrics.current_streak >= 0 ? "text-green-500" : "text-red-500"}`}>
+                  <p className="text-[12px] text-[#707990] mb-2">Current Streak</p>
+                  <p className={`text-3xl font-bold ${metrics.current_streak >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
                     {metrics.current_streak >= 0 ? `${metrics.current_streak}W` : `${Math.abs(metrics.current_streak)}L`}
                   </p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-2">Max Win Streak</p>
-                  <p className="text-3xl font-bold text-green-500">{metrics.max_win_streak}</p>
+                  <p className="text-[12px] text-[#707990] mb-2">Max Win Streak</p>
+                  <p className="text-3xl font-bold text-[#00a449]">{metrics.max_win_streak}</p>
                 </div>
                 <div className="text-center">
-                  <p className="text-xs text-gray-500 mb-2">Max Loss Streak</p>
-                  <p className="text-3xl font-bold text-red-500">{metrics.max_loss_streak}</p>
+                  <p className="text-[12px] text-[#707990] mb-2">Max Loss Streak</p>
+                  <p className="text-3xl font-bold text-[#d91e2b]">{metrics.max_loss_streak}</p>
                 </div>
               </div>
             </div>
           </div>
         ) : (
-          <div className="text-center py-16 bg-[#1e2329] rounded-lg border border-[#2b3139]">
-            <Upload className="h-16 w-16 text-gray-600 mx-auto mb-4" />
+          <div className="text-center py-16 bg-[#14161d] rounded border border-[#2d3139]">
+            <Upload className="h-16 w-16 text-[#707990] mx-auto mb-4" />
             <h2 className="text-xl font-bold text-white mb-2">No Trading Data</h2>
-            <p className="text-gray-400 mb-6">Import your trades to start tracking your performance</p>
+            <p className="text-[#707990] mb-6">Import your trades to start tracking your performance</p>
             <Link
-              href="/trades/import"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              href="/trades"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-[#00a449] hover:bg-[#00a449]/90 text-white rounded transition-colors"
             >
               <Upload className="h-5 w-5" />
               Import Trades

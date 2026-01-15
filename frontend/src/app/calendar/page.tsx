@@ -118,12 +118,12 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">Calendar</h1>
-            <p className="text-sm text-gray-400 mt-1">Track your daily trading performance</p>
+            <p className="text-[13px] text-[#707990] mt-1">Track your daily trading performance</p>
           </div>
           <button
             onClick={loadMonthData}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1e2329] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 bg-[#14161d] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
@@ -131,11 +131,11 @@ export default function CalendarPage() {
         </div>
 
         {/* Month Navigation */}
-        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4 mb-6">
+        <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 mb-6">
           <div className="flex items-center justify-between">
             <button
               onClick={handlePrevMonth}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#22262f] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
               Previous
@@ -143,12 +143,12 @@ export default function CalendarPage() {
 
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
-                <CalendarIcon className="h-5 w-5 text-green-500" />
+                <CalendarIcon className="h-5 w-5 text-[#00a449]" />
                 {MONTHS[month - 1]} {year}
               </h2>
               <button
                 onClick={handleToday}
-                className="px-3 py-1 text-xs bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
+                className="px-3 py-1 text-[12px] bg-[#00a449] hover:bg-[#00a449]/90 text-white rounded transition-colors"
               >
                 Today
               </button>
@@ -156,7 +156,7 @@ export default function CalendarPage() {
 
             <button
               onClick={handleNextMonth}
-              className="flex items-center gap-2 px-4 py-2 bg-[#0b0e11] border border-[#2b3139] rounded-lg text-gray-300 hover:text-white hover:border-gray-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-[#22262f] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors"
             >
               Next
               <ChevronRight className="h-4 w-4" />
@@ -167,44 +167,44 @@ export default function CalendarPage() {
         {/* Monthly Stats Summary */}
         {monthStats && monthStats.total_trades > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
-              <p className="text-xs text-gray-500 mb-1">Monthly P&L</p>
-              <p className={`text-xl font-bold ${monthStats.total_pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Monthly P&L</p>
+              <p className={`text-xl font-bold ${monthStats.total_pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
                 {formatCurrency(monthStats.total_pnl)}
               </p>
             </div>
 
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
-              <p className="text-xs text-gray-500 mb-1">Trades</p>
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Trades</p>
               <p className="text-xl font-bold text-white">{monthStats.total_trades}</p>
             </div>
 
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
-              <p className="text-xs text-gray-500 mb-1">Win Rate</p>
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Win Rate</p>
               <p className="text-xl font-bold text-white">{monthStats.win_rate.toFixed(1)}%</p>
             </div>
 
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
-              <p className="text-xs text-gray-500 mb-1">Best Day</p>
-              <p className="text-xl font-bold text-green-500">{formatCurrency(monthStats.best_day)}</p>
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Best Day</p>
+              <p className="text-xl font-bold text-[#00a449]">{formatCurrency(monthStats.best_day)}</p>
             </div>
 
-            <div className="bg-[#1e2329] rounded-lg border border-[#2b3139] p-4">
-              <p className="text-xs text-gray-500 mb-1">Worst Day</p>
-              <p className="text-xl font-bold text-red-500">{formatCurrency(monthStats.worst_day)}</p>
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Worst Day</p>
+              <p className="text-xl font-bold text-[#d91e2b]">{formatCurrency(monthStats.worst_day)}</p>
             </div>
           </div>
         )}
 
         {/* Calendar Grid */}
-        <div className="bg-[#1e2329] rounded-lg border border-[#2b3139]">
-          <div className="p-4 border-b border-[#2b3139]">
+        <div className="bg-[#14161d] rounded border border-[#2d3139]">
+          <div className="p-4 border-b border-[#2d3139]">
             <h3 className="text-lg font-semibold text-white">Daily Performance</h3>
           </div>
           <div className="p-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
-                <RefreshCw className="h-8 w-8 animate-spin text-green-500" />
+                <RefreshCw className="h-8 w-8 animate-spin text-[#00a449]" />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -214,7 +214,7 @@ export default function CalendarPage() {
                       {DAYS.map((day) => (
                         <th
                           key={day}
-                          className="p-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider border-b border-[#2b3139]"
+                          className="p-3 text-center text-[12px] font-medium text-[#707990] uppercase tracking-wider border-b border-[#2d3139]"
                         >
                           {day}
                         </th>
@@ -229,7 +229,7 @@ export default function CalendarPage() {
                             return (
                               <td
                                 key={dayIdx}
-                                className="p-1 border border-[#2b3139] bg-[#14171c]/50"
+                                className="p-1 border border-[#2d3139] bg-[#22262f]/50"
                               />
                             );
                           }
@@ -241,21 +241,21 @@ export default function CalendarPage() {
                           return (
                             <td
                               key={dayIdx}
-                              className={`p-2 border border-[#2b3139] align-top transition-colors ${
+                              className={`p-2 border border-[#2d3139] align-top transition-colors ${
                                 hasTrades
                                   ? day.is_green
-                                    ? "bg-green-500/10 hover:bg-green-500/20"
-                                    : "bg-red-500/10 hover:bg-red-500/20"
-                                  : "bg-[#14171c]/30 hover:bg-[#14171c]/50"
-                              } ${isToday ? "ring-2 ring-green-500 ring-inset" : ""}`}
+                                    ? "bg-[#00a449]/10 hover:bg-[#00a449]/20"
+                                    : "bg-[#d91e2b]/10 hover:bg-[#d91e2b]/20"
+                                  : "bg-[#22262f]/30 hover:bg-[#22262f]/50"
+                              } ${isToday ? "ring-2 ring-[#00a449] ring-inset" : ""}`}
                             >
                               <div className="min-h-[90px]">
                                 <div className="flex items-center justify-between mb-2">
-                                  <span className={`text-sm font-medium ${isToday ? "text-green-500" : "text-gray-400"}`}>
+                                  <span className={`text-[14px] font-medium ${isToday ? "text-[#00a449]" : "text-[#707990]"}`}>
                                     {dayNum}
                                   </span>
                                   {hasTrades && (
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-[12px] text-[#707990]">
                                       {day.trades} {day.trades === 1 ? "trade" : "trades"}
                                     </span>
                                   )}
@@ -265,12 +265,12 @@ export default function CalendarPage() {
                                   <div className="space-y-1">
                                     <p
                                       className={`text-lg font-bold ${
-                                        day.pnl >= 0 ? "text-green-500" : "text-red-500"
+                                        day.pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"
                                       }`}
                                     >
                                       {formatCurrency(day.pnl)}
                                     </p>
-                                    <p className="text-xs text-gray-500">
+                                    <p className="text-[12px] text-[#707990]">
                                       {day.win_rate.toFixed(0)}% WR
                                     </p>
                                   </div>
@@ -291,16 +291,16 @@ export default function CalendarPage() {
         {/* Legend */}
         <div className="flex items-center gap-6 justify-center mt-6">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-green-500/30 border border-green-500/50" />
-            <span className="text-sm text-gray-400">Profitable Day</span>
+            <div className="w-4 h-4 rounded bg-[#00a449]/30 border border-[#00a449]/50" />
+            <span className="text-[14px] text-[#707990]">Profitable Day</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-500/30 border border-red-500/50" />
-            <span className="text-sm text-gray-400">Loss Day</span>
+            <div className="w-4 h-4 rounded bg-[#d91e2b]/30 border border-[#d91e2b]/50" />
+            <span className="text-[14px] text-[#707990]">Loss Day</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-[#14171c] border border-[#2b3139]" />
-            <span className="text-sm text-gray-400">No Trades</span>
+            <div className="w-4 h-4 rounded bg-[#22262f] border border-[#2d3139]" />
+            <span className="text-[14px] text-[#707990]">No Trades</span>
           </div>
         </div>
       </div>
