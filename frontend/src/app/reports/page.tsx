@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { reportsApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
 import {
@@ -16,6 +16,41 @@ import {
 
 // Accent: softer/pastel green
 const ACCENT = "#48d18a";
+
+// Info tooltip component
+function InfoTooltip({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on click outside
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="text-white/40 hover:text-white/70 transition-colors"
+        aria-label="info"
+      >
+        <Info className="h-4 w-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-6 z-50 w-[220px] p-3 rounded-lg bg-[#2d3139] border border-white/10 shadow-xl text-[12px] text-white/80 leading-relaxed">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
 
 type MainTab = "overview" | "detailed" | "winloss" | "drawdown" | "compare" | "tagbreak" | "advanced";
 type TimeTab = "recent" | "ymd" | "calendar";
@@ -45,6 +80,7 @@ function DayBarChart({
   dataKey,
   formatValue,
   colorFn,
+  infoText,
 }: {
   title: string;
   subtitle?: string;
@@ -52,6 +88,7 @@ function DayBarChart({
   dataKey: "total_pnl" | "trades" | "win_rate";
   formatValue?: (v: number) => string;
   colorFn?: (v: number) => string;
+  infoText?: string;
 }) {
   const values = data.map((d) => d[dataKey] || 0);
   const maxVal = Math.max(...values.map(Math.abs), 1);
@@ -67,9 +104,7 @@ function DayBarChart({
           <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
           {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
         </div>
-        <button className="text-white/40 hover:text-white/70 transition-colors" aria-label="info">
-          <Info className="h-4 w-4" />
-        </button>
+        <InfoTooltip text={infoText || "Displays aggregated data grouped by entry day of week."} />
       </div>
       <div className="p-4 h-[220px] flex items-end gap-2">
         {data.length === 0 ? (
@@ -107,6 +142,7 @@ function HourlyChart({
   dataKey,
   formatValue,
   colorFn,
+  infoText,
 }: {
   title: string;
   subtitle?: string;
@@ -114,6 +150,7 @@ function HourlyChart({
   dataKey: "total_pnl" | "trades" | "win_rate";
   formatValue?: (v: number) => string;
   colorFn?: (v: number) => string;
+  infoText?: string;
 }) {
   const values = data.map((d) => Number(d[dataKey]) || 0);
   const maxVal = Math.max(...values.map(Math.abs), 1);
@@ -129,9 +166,7 @@ function HourlyChart({
           <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
           {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
         </div>
-        <button className="text-white/40 hover:text-white/70 transition-colors" aria-label="info">
-          <Info className="h-4 w-4" />
-        </button>
+        <InfoTooltip text={infoText || "Displays aggregated data grouped by entry hour of day."} />
       </div>
       <div className="p-4 h-[220px] flex items-end gap-1 overflow-x-auto">
         {data.length === 0 ? (
@@ -169,6 +204,7 @@ function HorizontalBarChart({
   labelKey,
   formatValue,
   colorFn,
+  infoText,
 }: {
   title: string;
   subtitle?: string;
@@ -178,6 +214,7 @@ function HorizontalBarChart({
   labelKey: string;
   formatValue?: (v: number) => string;
   colorFn?: (v: number) => string;
+  infoText?: string;
 }) {
   const values = data.map((d) => Number(d[dataKey]) || 0);
   const maxVal = Math.max(...values.map(Math.abs), 1);
@@ -193,9 +230,7 @@ function HorizontalBarChart({
           <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
           {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
         </div>
-        <button className="text-white/40 hover:text-white/70 transition-colors" aria-label="info">
-          <Info className="h-4 w-4" />
-        </button>
+        <InfoTooltip text={infoText || "Displays aggregated data for the selected filter."} />
       </div>
       <div className="p-4 flex flex-col gap-2">
         {data.length === 0 ? (
@@ -305,6 +340,61 @@ function formatValue(value: number | null | undefined, formatter: (v: number) =>
   return formatter(value);
 }
 
+// Stats help modal - Report Statistics page
+function StatsHelpModal({ onClose }: { onClose: () => void }) {
+  const helpItems = [
+    { title: "Total gain/loss", description: "The total aggregate P&L for all trades matching the current filter." },
+    { title: "Average daily gain/loss", description: "The average daily P&L for all trades matching the current filter. This is calculated as the total aggregate P&L divided by the number of days that had trades matching the current filter." },
+    { title: "Average daily volume", description: "The average daily volume for each day with trades matching the current filter." },
+    { title: "Average winning trade", description: "The average P&L of trades matching the current filter with a P&L greater than zero." },
+    { title: "Average losing trade", description: "The average P&L of trades matching the current filter with a P&L less than zero." },
+    { title: "System Quality Number (SQN)", description: "The SQN is a calculation developed by Van K Tharp. It can be interpreted as an overall \"grade\" for your trading system, and should generally not be deemed reliable with less than 30 trades." },
+    { title: "Kelly Percentage", description: "The Kelly Criterion is a formula used to determine the optimal size of a series of bets. It represents the percentage of your capital you should risk on each trade." },
+    { title: "K-Ratio", description: "A measure of the consistency of returns. Higher values indicate more consistent performance." },
+    { title: "Profit Factor", description: "The ratio of gross profits to gross losses. A profit factor greater than 1 indicates a profitable system." },
+    { title: "Trade P&L Standard Deviation", description: "A measure of the variability of trade P&L. Lower values indicate more consistent trade results." },
+    { title: "Average Hold Time", description: "The average duration of trades, calculated separately for winning, losing, and scratch trades." },
+    { title: "Max Consecutive Wins/Losses", description: "The longest streak of consecutive winning or losing trades." },
+    { title: "Average Position MAE/MFE", description: "Maximum Adverse Excursion (MAE) is the maximum loss experienced during a trade. Maximum Favorable Excursion (MFE) is the maximum profit during a trade before exit." },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
+      <div
+        className="bg-[#1a1d24] border border-white/10 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+          <h2 className="text-xl font-semibold text-white">Report Statistics</h2>
+          <button
+            onClick={onClose}
+            className="text-white/50 hover:text-white transition-colors text-2xl leading-none"
+          >
+            &times;
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto max-h-[calc(80vh-80px)]">
+          <p className="text-white/70 text-[14px] mb-4">
+            The following statistics are shown in a table at the top of the Detailed report page. Only closed trades are reflected in the report statistics.
+          </p>
+          <div className="bg-[#00a449]/20 border border-[#00a449]/40 rounded-lg px-4 py-2 mb-6">
+            <span className="text-[#00a449] font-medium text-[13px]">Important:</span>
+            <span className="text-white/80 text-[13px] ml-2">Only closed trades are reflected in the report statistics.</span>
+          </div>
+          <div className="space-y-4">
+            {helpItems.map((item, idx) => (
+              <div key={idx}>
+                <h3 className="text-white font-medium text-[15px] mb-1">{item.title}</h3>
+                <p className="text-white/60 text-[13px] leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatsTable({ stats }: { stats: DetailedStats | null }) {
   const rows: Array<[string, string, string, string, string, string]> = stats ? [
     [
@@ -370,12 +460,23 @@ function StatsTable({ stats }: { stats: DetailedStats | null }) {
     ["Average position MAE", "n/a", "Average Position MFE", "n/a", "", ""],
   ];
 
+  const [showStatsHelp, setShowStatsHelp] = useState(false);
+
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
         <div className="text-[16px] font-semibold">Stats</div>
-        <Info className="h-4 w-4 text-white/50" />
+        <button
+          onClick={() => setShowStatsHelp(true)}
+          className="text-white/50 hover:text-white/80 transition-colors"
+          aria-label="View stats help"
+        >
+          <Info className="h-4 w-4" />
+        </button>
       </div>
+      {showStatsHelp && (
+        <StatsHelpModal onClose={() => setShowStatsHelp(false)} />
+      )}
       <div className="p-4">
         <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden border border-white/10">
           {rows.map((r, idx) => (
@@ -619,48 +720,36 @@ export default function ReportsPage() {
             ) : detailedGroup === "dt" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <DayBarChart
-                  title="P&L BY DAY OF WEEK"
+                  title="PERFORMANCE BY DAY OF WEEK"
                   subtitle={`Last ${range} Days`}
                   data={daysTimes?.by_day || []}
                   dataKey="total_pnl"
                   formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry day of week."
                 />
                 <DayBarChart
-                  title="WIN % BY DAY OF WEEK"
-                  subtitle={`Last ${range} Days`}
-                  data={daysTimes?.by_day || []}
-                  dataKey="win_rate"
-                  formatValue={(v) => `${v.toFixed(0)}%`}
-                  colorFn={(v) => (v >= 50 ? "#48d18a" : "#f59e0b")}
-                />
-                <DayBarChart
-                  title="TRADES BY DAY OF WEEK"
+                  title="TRADE DISTRIBUTION BY DAY OF WEEK"
                   subtitle={`Last ${range} Days`}
                   data={daysTimes?.by_day || []}
                   dataKey="trades"
                   colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by entry day of week."
                 />
                 <HourlyChart
-                  title="P&L BY HOUR"
+                  title="PERFORMANCE BY HOUR OF DAY"
                   subtitle={`Last ${range} Days`}
                   data={daysTimes?.by_hour || []}
                   dataKey="total_pnl"
                   formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry hour of day. Hours are specified in US Eastern time."
                 />
                 <HourlyChart
-                  title="WIN % BY HOUR"
-                  subtitle={`Last ${range} Days`}
-                  data={daysTimes?.by_hour || []}
-                  dataKey="win_rate"
-                  formatValue={(v) => `${v.toFixed(0)}%`}
-                  colorFn={(v) => (v >= 50 ? "#48d18a" : "#f59e0b")}
-                />
-                <HourlyChart
-                  title="TRADES BY HOUR"
+                  title="TRADE DISTRIBUTION BY HOUR OF DAY"
                   subtitle={`Last ${range} Days`}
                   data={daysTimes?.by_hour || []}
                   dataKey="trades"
                   colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by entry hour of day. Hours are specified in US Eastern time."
                 />
               </div>
             ) : detailedGroup === "ipv" ? (
@@ -672,6 +761,7 @@ export default function ReportsPage() {
                   dataKey="trades"
                   labelKey="range_label"
                   colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by entry price range."
                 />
                 <HorizontalBarChart
                   title="PERFORMANCE BY PRICE"
@@ -680,6 +770,7 @@ export default function ReportsPage() {
                   dataKey="total_pnl"
                   labelKey="range_label"
                   formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry price range."
                 />
                 <HorizontalBarChart
                   title="DISTRIBUTION BY VOLUME TRADED"
@@ -688,6 +779,7 @@ export default function ReportsPage() {
                   dataKey="trades"
                   labelKey="range_label"
                   colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by shares/volume traded."
                 />
                 <HorizontalBarChart
                   title="PERFORMANCE BY VOLUME TRADED"
@@ -696,6 +788,7 @@ export default function ReportsPage() {
                   dataKey="total_pnl"
                   labelKey="range_label"
                   formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by shares/volume traded."
                 />
               </div>
             ) : detailedGroup === "ins" ? (
