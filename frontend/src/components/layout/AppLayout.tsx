@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import Header from './Header';
 import Sidebar from './Sidebar';
@@ -12,6 +13,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { token, fetchUser } = useAuthStore();
 
   useEffect(() => {
@@ -31,11 +33,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-[#14161d] flex">
+    <div className="min-h-screen bg-[#0b1220] flex">
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        <main className="flex-1 overflow-y-auto bg-[#22262f]">
+        {/* Reports screen in the reference UI has no global header */}
+        {pathname?.startsWith('/reports') ? null : <Header />}
+        <main className="flex-1 overflow-y-auto bg-[#0b1220]">
           {children}
         </main>
       </div>

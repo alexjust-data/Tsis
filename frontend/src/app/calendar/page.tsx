@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { dashboardApi, type MonthlyStats, type CalendarDay } from "@/lib/api";
 import AppLayout from "@/components/layout/AppLayout";
@@ -27,71 +27,127 @@ const MONTHS = [
   "July", "August", "September", "October", "November", "December"
 ];
 
-const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAYS_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
+
+interface MiniCalendarDay {
+  day: number;
+  isOtherMonth: boolean;
+  pnl: number;
+  trades: number;
+  hasTrades: boolean;
+  isToday: boolean;
+  isWeekend: boolean;
+  isGreen: boolean;
+}
 
 export default function CalendarPage() {
   const { token } = useAuthStore();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [monthStats, setMonthStats] = useState<MonthlyStats | null>(null);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [monthsData, setMonthsData] = useState<Map<number, MonthlyStats>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth() + 1;
-
+  // Load all 12 months of data for the current year
   useEffect(() => {
     if (token) {
-      loadMonthData();
+      loadYearData();
     }
-  }, [token, year, month]);
+  }, [token, currentYear]);
 
-  const loadMonthData = async () => {
+  const loadYearData = async () => {
     if (!token) return;
 
     setIsLoading(true);
     try {
-      const data = await dashboardApi.getCalendar(token, year, month);
-      setMonthStats(data);
+      const promises = [];
+      for (let month = 1; month <= 12; month++) {
+        promises.push(
+          dashboardApi.getCalendar(token, currentYear, month)
+            .then(data => ({ month, data }))
+            .catch(() => ({ month, data: null }))
+        );
+      }
+
+      const results = await Promise.all(promises);
+      const newMonthsData = new Map<number, MonthlyStats>();
+
+      results.forEach(({ month, data }) => {
+        if (data) {
+          newMonthsData.set(month, data);
+        }
+      });
+
+      setMonthsData(newMonthsData);
     } catch (error) {
       console.error("Failed to load calendar data:", error);
-      setMonthStats(null);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(year, month - 2, 1));
+  const handlePrevYear = () => {
+    setCurrentYear(prev => prev - 1);
   };
 
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(year, month, 1));
+  const handleNextYear = () => {
+    setCurrentYear(prev => prev + 1);
   };
 
-  const handleToday = () => {
-    setCurrentDate(new Date());
+  const handleThisYear = () => {
+    setCurrentYear(new Date().getFullYear());
   };
 
-  // Build calendar grid
-  const buildCalendarGrid = (): (CalendarDay | null)[][] => {
+  // Build mini calendar grid for a specific month
+  const buildMiniCalendar = (year: number, month: number): MiniCalendarDay[][] => {
     const firstDay = new Date(year, month - 1, 1).getDay();
     const daysInMonth = new Date(year, month, 0).getDate();
+    const daysInPrevMonth = new Date(year, month - 1, 0).getDate();
 
+    const monthStats = monthsData.get(month);
     const calendarMap = new Map<number, CalendarDay>();
+
     monthStats?.calendar.forEach((day) => {
       const dayNum = new Date(day.date).getDate();
       calendarMap.set(dayNum, day);
     });
 
-    const weeks: (CalendarDay | null)[][] = [];
-    let currentWeek: (CalendarDay | null)[] = [];
+    const weeks: MiniCalendarDay[][] = [];
+    let currentWeek: MiniCalendarDay[] = [];
+    const today = new Date();
 
-    for (let i = 0; i < firstDay; i++) {
-      currentWeek.push(null);
+    // Fill in days from previous month
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const day = daysInPrevMonth - i;
+      currentWeek.push({
+        day,
+        isOtherMonth: true,
+        pnl: 0,
+        trades: 0,
+        hasTrades: false,
+        isToday: false,
+        isWeekend: currentWeek.length === 0 || currentWeek.length === 6,
+        isGreen: true,
+      });
     }
 
+    // Fill in days of current month
     for (let day = 1; day <= daysInMonth; day++) {
       const calendarDay = calendarMap.get(day);
-      currentWeek.push(calendarDay || { date: `${year}-${month}-${day}`, pnl: 0, trades: 0, win_rate: 0, is_green: true });
+      const date = new Date(year, month - 1, day);
+      const dayOfWeek = date.getDay();
+      const isToday = today.getFullYear() === year &&
+                      today.getMonth() === month - 1 &&
+                      today.getDate() === day;
+
+      currentWeek.push({
+        day,
+        isOtherMonth: false,
+        pnl: calendarDay?.pnl || 0,
+        trades: calendarDay?.trades || 0,
+        hasTrades: (calendarDay?.trades || 0) > 0,
+        isToday,
+        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+        isGreen: calendarDay?.is_green ?? true,
+      });
 
       if (currentWeek.length === 7) {
         weeks.push(currentWeek);
@@ -99,17 +155,75 @@ export default function CalendarPage() {
       }
     }
 
+    // Fill in days from next month
+    let nextDay = 1;
+    while (currentWeek.length < 7 && currentWeek.length > 0) {
+      currentWeek.push({
+        day: nextDay++,
+        isOtherMonth: true,
+        pnl: 0,
+        trades: 0,
+        hasTrades: false,
+        isToday: false,
+        isWeekend: currentWeek.length === 0 || currentWeek.length === 6,
+        isGreen: true,
+      });
+    }
     if (currentWeek.length > 0) {
-      while (currentWeek.length < 7) {
-        currentWeek.push(null);
-      }
       weeks.push(currentWeek);
     }
 
     return weeks;
   };
 
-  const weeks = buildCalendarGrid();
+  // Calculate yearly stats
+  const yearlyStats = useMemo(() => {
+    let totalPnl = 0;
+    let totalTrades = 0;
+    let winners = 0;
+    let losers = 0;
+    let bestDay = 0;
+    let worstDay = 0;
+    let greenDays = 0;
+    let redDays = 0;
+
+    monthsData.forEach((monthData) => {
+      totalPnl += monthData.total_pnl;
+      totalTrades += monthData.total_trades;
+
+      monthData.calendar.forEach((day) => {
+        if (day.trades > 0) {
+          if (day.pnl > bestDay) bestDay = day.pnl;
+          if (day.pnl < worstDay) worstDay = day.pnl;
+          if (day.is_green) {
+            greenDays++;
+          } else {
+            redDays++;
+          }
+        }
+      });
+    });
+
+    // Count winners/losers from trades
+    monthsData.forEach((monthData) => {
+      const monthWinRate = monthData.win_rate / 100;
+      const monthWinners = Math.round(monthData.total_trades * monthWinRate);
+      winners += monthWinners;
+      losers += monthData.total_trades - monthWinners;
+    });
+
+    const winRate = totalTrades > 0 ? (winners / totalTrades) * 100 : 0;
+
+    return {
+      totalPnl,
+      totalTrades,
+      winRate,
+      bestDay,
+      worstDay,
+      greenDays,
+      redDays,
+    };
+  }, [monthsData]);
 
   return (
     <AppLayout>
@@ -118,171 +232,226 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">Calendar</h1>
-            <p className="text-[13px] text-[#707990] mt-1">Track your daily trading performance</p>
+            <p className="text-[13px] text-[#707990] mt-1">
+              Track your daily trading performance across the year
+            </p>
           </div>
           <button
-            onClick={loadMonthData}
+            onClick={loadYearData}
             disabled={isLoading}
             className="flex items-center gap-2 px-4 py-2 bg-[#14161d] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
           </button>
         </div>
 
-        {/* Month Navigation */}
+        {/* Year Navigation */}
         <div className="bg-[#14161d] rounded border border-[#2d3139] p-4 mb-6">
           <div className="flex items-center justify-between">
             <button
-              onClick={handlePrevMonth}
+              onClick={handlePrevYear}
               className="flex items-center gap-2 px-4 py-2 bg-[#22262f] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
+              {currentYear - 1}
             </button>
 
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-3">
                 <CalendarIcon className="h-5 w-5 text-[#00a449]" />
-                {MONTHS[month - 1]} {year}
+                {currentYear}
               </h2>
               <button
-                onClick={handleToday}
+                onClick={handleThisYear}
                 className="px-3 py-1 text-[12px] bg-[#00a449] hover:bg-[#00a449]/90 text-white rounded transition-colors"
               >
-                Today
+                This Year
               </button>
             </div>
 
             <button
-              onClick={handleNextMonth}
+              onClick={handleNextYear}
               className="flex items-center gap-2 px-4 py-2 bg-[#22262f] border border-[#2d3139] rounded text-[#707990] hover:text-white hover:border-[#707990] transition-colors"
             >
-              Next
+              {currentYear + 1}
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>
 
-        {/* Monthly Stats Summary */}
-        {monthStats && monthStats.total_trades > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        {/* Yearly Stats Summary */}
+        {yearlyStats.totalTrades > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
             <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
-              <p className="text-[12px] text-[#707990] mb-1">Monthly P&L</p>
-              <p className={`text-xl font-bold ${monthStats.total_pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
-                {formatCurrency(monthStats.total_pnl)}
+              <p className="text-[12px] text-[#707990] mb-1">Yearly P&L</p>
+              <p className={`text-xl font-bold ${yearlyStats.totalPnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"}`}>
+                {formatCurrency(yearlyStats.totalPnl)}
               </p>
             </div>
 
             <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
               <p className="text-[12px] text-[#707990] mb-1">Trades</p>
-              <p className="text-xl font-bold text-white">{monthStats.total_trades}</p>
+              <p className="text-xl font-bold text-white">{yearlyStats.totalTrades}</p>
             </div>
 
             <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
               <p className="text-[12px] text-[#707990] mb-1">Win Rate</p>
-              <p className="text-xl font-bold text-white">{monthStats.win_rate.toFixed(1)}%</p>
+              <p className="text-xl font-bold text-white">{yearlyStats.winRate.toFixed(1)}%</p>
             </div>
 
             <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
               <p className="text-[12px] text-[#707990] mb-1">Best Day</p>
-              <p className="text-xl font-bold text-[#00a449]">{formatCurrency(monthStats.best_day)}</p>
+              <p className="text-xl font-bold text-[#00a449]">{formatCurrency(yearlyStats.bestDay)}</p>
             </div>
 
             <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
               <p className="text-[12px] text-[#707990] mb-1">Worst Day</p>
-              <p className="text-xl font-bold text-[#d91e2b]">{formatCurrency(monthStats.worst_day)}</p>
+              <p className="text-xl font-bold text-[#d91e2b]">{formatCurrency(yearlyStats.worstDay)}</p>
+            </div>
+
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Green Days</p>
+              <p className="text-xl font-bold text-[#00a449]">{yearlyStats.greenDays}</p>
+            </div>
+
+            <div className="bg-[#14161d] rounded border border-[#2d3139] p-4">
+              <p className="text-[12px] text-[#707990] mb-1">Red Days</p>
+              <p className="text-xl font-bold text-[#d91e2b]">{yearlyStats.redDays}</p>
             </div>
           </div>
         )}
 
-        {/* Calendar Grid */}
+        {/* 12 Month Calendar Grid */}
         <div className="bg-[#14161d] rounded border border-[#2d3139]">
           <div className="p-4 border-b border-[#2d3139]">
             <h3 className="text-lg font-semibold text-white">Daily Performance</h3>
           </div>
+
           <div className="p-4">
             {isLoading ? (
               <div className="flex items-center justify-center h-64">
                 <RefreshCw className="h-8 w-8 animate-spin text-[#00a449]" />
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr>
-                      {DAYS.map((day) => (
-                        <th
-                          key={day}
-                          className="p-3 text-center text-[12px] font-medium text-[#707990] uppercase tracking-wider border-b border-[#2d3139]"
-                        >
-                          {day}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {weeks.map((week, weekIdx) => (
-                      <tr key={weekIdx}>
-                        {week.map((day, dayIdx) => {
-                          if (!day) {
-                            return (
-                              <td
-                                key={dayIdx}
-                                className="p-1 border border-[#2d3139] bg-[#22262f]/50"
-                              />
-                            );
-                          }
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+                {MONTHS.map((monthName, index) => {
+                  const month = index + 1;
+                  const weeks = buildMiniCalendar(currentYear, month);
+                  const monthStats = monthsData.get(month);
+                  const monthPnl = monthStats?.total_pnl || 0;
+                  const monthTrades = monthStats?.total_trades || 0;
 
-                          const dayNum = new Date(day.date).getDate();
-                          const hasTrades = day.trades > 0;
-                          const isToday = new Date().toDateString() === new Date(day.date).toDateString();
+                  return (
+                    <div
+                      key={month}
+                      className="bg-[#22262f]/50 rounded border border-[#2d3139] overflow-hidden"
+                    >
+                      {/* Month Header */}
+                      <div className="px-3 py-2 border-b border-[#2d3139] flex items-center justify-between">
+                        <span className="text-[14px] font-semibold text-white">
+                          {monthName}
+                        </span>
+                        {monthTrades > 0 && (
+                          <span
+                            className={`text-[13px] font-bold ${
+                              monthPnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"
+                            }`}
+                          >
+                            {formatCurrency(monthPnl)}
+                          </span>
+                        )}
+                      </div>
 
-                          return (
-                            <td
-                              key={dayIdx}
-                              className={`p-2 border border-[#2d3139] align-top transition-colors ${
-                                hasTrades
-                                  ? day.is_green
-                                    ? "bg-[#00a449]/10 hover:bg-[#00a449]/20"
-                                    : "bg-[#d91e2b]/10 hover:bg-[#d91e2b]/20"
-                                  : "bg-[#22262f]/30 hover:bg-[#22262f]/50"
-                              } ${isToday ? "ring-2 ring-[#00a449] ring-inset" : ""}`}
-                            >
-                              <div className="min-h-[90px]">
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className={`text-[14px] font-medium ${isToday ? "text-[#00a449]" : "text-[#707990]"}`}>
-                                    {dayNum}
-                                  </span>
-                                  {hasTrades && (
-                                    <span className="text-[12px] text-[#707990]">
-                                      {day.trades} {day.trades === 1 ? "trade" : "trades"}
-                                    </span>
-                                  )}
-                                </div>
+                      {/* Mini Calendar */}
+                      <div className="p-2">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr>
+                              {DAYS_SHORT.map((day, i) => (
+                                <th
+                                  key={i}
+                                  className={`text-center text-[10px] font-medium py-1 ${
+                                    i === 0 || i === 6
+                                      ? "text-[#707990]/70"
+                                      : "text-[#707990]"
+                                  }`}
+                                >
+                                  {day}
+                                </th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {weeks.map((week, weekIdx) => (
+                              <tr key={weekIdx}>
+                                {week.map((day, dayIdx) => {
+                                  const cellClasses = [
+                                    "text-center text-[11px] p-1 relative",
+                                    day.isOtherMonth
+                                      ? "text-[#707990]/30"
+                                      : day.isWeekend
+                                      ? "text-[#707990]/70"
+                                      : "text-[#707990]",
+                                  ];
 
-                                {hasTrades && (
-                                  <div className="space-y-1">
-                                    <p
-                                      className={`text-lg font-bold ${
-                                        day.pnl >= 0 ? "text-[#00a449]" : "text-[#d91e2b]"
-                                      }`}
+                                  // Background for trades
+                                  let bgClass = "";
+                                  if (day.hasTrades && !day.isOtherMonth) {
+                                    bgClass = day.isGreen
+                                      ? "bg-[#00a449]/30"
+                                      : "bg-[#d91e2b]/30";
+                                  }
+
+                                  // Today highlight
+                                  const todayClass = day.isToday
+                                    ? "ring-1 ring-[#00a449] ring-inset rounded"
+                                    : "";
+
+                                  return (
+                                    <td
+                                      key={dayIdx}
+                                      className={cellClasses.join(" ")}
+                                      title={
+                                        day.hasTrades && !day.isOtherMonth
+                                          ? `${day.trades} trade${day.trades !== 1 ? "s" : ""}: ${formatCurrency(day.pnl)}`
+                                          : undefined
+                                      }
                                     >
-                                      {formatCurrency(day.pnl)}
-                                    </p>
-                                    <p className="text-[12px] text-[#707990]">
-                                      {day.win_rate.toFixed(0)}% WR
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                                      <div
+                                        className={`w-6 h-6 mx-auto flex items-center justify-center rounded-sm ${bgClass} ${todayClass}`}
+                                      >
+                                        <span
+                                          className={
+                                            day.hasTrades && !day.isOtherMonth
+                                              ? day.isGreen
+                                                ? "text-[#00a449] font-medium"
+                                                : "text-[#d91e2b] font-medium"
+                                              : ""
+                                          }
+                                        >
+                                          {day.day}
+                                        </span>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Month Footer Stats */}
+                      {monthTrades > 0 && (
+                        <div className="px-3 py-2 border-t border-[#2d3139] flex items-center justify-between text-[11px] text-[#707990]">
+                          <span>{monthTrades} trades</span>
+                          <span>{monthStats?.win_rate.toFixed(0)}% WR</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -301,6 +470,10 @@ export default function CalendarPage() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded bg-[#22262f] border border-[#2d3139]" />
             <span className="text-[14px] text-[#707990]">No Trades</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded ring-1 ring-[#00a449]" />
+            <span className="text-[14px] text-[#707990]">Today</span>
           </div>
         </div>
       </div>
