@@ -229,6 +229,23 @@ export const riskApi = {
     ),
 };
 
+// Reports API
+export const reportsApi = {
+  getDetailedStats: (
+    token: string,
+    params?: { ticker?: string; side?: "long" | "short"; start_date?: string; end_date?: string }
+  ) => {
+    const searchParams = new URLSearchParams();
+    if (params?.ticker) searchParams.append("ticker", params.ticker);
+    if (params?.side) searchParams.append("side", params.side);
+    if (params?.start_date) searchParams.append("start_date", params.start_date);
+    if (params?.end_date) searchParams.append("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    return fetchApi<DetailedStats>(`/reports/detailed/stats${query ? `?${query}` : ""}`, { token });
+  },
+};
+
 // Types
 export interface Trade {
   id: number;
@@ -386,6 +403,38 @@ export interface JournalEntry {
   total_trades: number;
   winners: number;
   losers: number;
+}
+
+// Reports Types - matches backend DetailedStatsResponse
+export interface DetailedStats {
+  total_gain_loss: number;
+  largest_gain: number | null;
+  largest_loss: number | null;
+  average_daily_gain_loss: number;
+  average_daily_volume: number;
+  average_per_share_gain_loss: number;
+  average_trade_gain_loss: number;
+  average_winning_trade: number;
+  average_losing_trade: number;
+  total_number_of_trades: number;
+  number_of_winning_trades: number;
+  number_of_losing_trades: number;
+  average_hold_time_scratch_trades_seconds: number;
+  average_hold_time_winning_trades_seconds: number;
+  average_hold_time_losing_trades_seconds: number;
+  number_of_scratch_trades: number;
+  max_consecutive_wins: number;
+  max_consecutive_losses: number;
+  trade_pnl_standard_deviation: number | null;
+  system_quality_number_sqn: number | null;
+  probability_of_random_chance: number | null;
+  kelly_percentage: number | null;
+  k_ratio: number | null;
+  profit_factor: number | null;
+  total_commissions: number | null;
+  total_fees: number | null;
+  average_position_mae: number | null;
+  average_position_mfe: number | null;
 }
 
 export { ApiError };

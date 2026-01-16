@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuthStore } from "@/lib/auth";
-import { dashboardApi, tradesApi, type DashboardMetrics, type Trade } from "@/lib/api";
+import { reportsApi, type DetailedStats } from "@/lib/api";
 import {
   CalendarDays,
   Check,
@@ -105,47 +105,81 @@ function formatPercent(value: number): string {
   return `${value.toFixed(1)}%`;
 }
 
-function StatsTable({ metrics, trades }: { metrics: DashboardMetrics | null; trades: Trade[] }) {
-  // Compute additional stats from trades
-  const computedStats = useMemo(() => {
-    if (!trades || trades.length === 0) {
-      return {
-        totalCommissions: 0,
-        avgVolume: 0,
-        scratchTrades: 0,
-      };
-    }
+function formatHoldTime(seconds: number): string {
+  if (seconds === 0) return "n/a";
+  if (seconds < 60) return `${seconds.toFixed(0)}s`;
+  if (seconds < 3600) return `${(seconds / 60).toFixed(1)}m`;
+  return `${(seconds / 3600).toFixed(1)}h`;
+}
 
-    const totalCommissions = trades.reduce((sum, t) => sum + (t.commissions || 0), 0);
-    const totalShares = trades.reduce((sum, t) => sum + t.shares, 0);
-    const avgVolume = totalShares / trades.length;
-    const scratchTrades = trades.filter(t => Math.abs(t.pnl) < 1).length;
+function formatValue(value: number | null | undefined, formatter: (v: number) => string = String): string {
+  if (value === null || value === undefined) return "n/a";
+  return formatter(value);
+}
 
-    return { totalCommissions, avgVolume, scratchTrades };
-  }, [trades]);
-
-  const rows: Array<[string, string, string, string, string, string]> = metrics ? [
-    ["Total Gain/Loss", formatCurrency(metrics.total_pnl), "Largest Gain", formatCurrency(metrics.best_trade), "Largest Loss", formatCurrency(metrics.worst_trade)],
-    ["Average Daily Gain/Loss", formatCurrency(metrics.avg_pnl_per_trade), "Average Daily Volume", computedStats.avgVolume.toFixed(0), "Average Per-share Gain/Loss", "n/a"],
-    ["Average Trade Gain/Loss", formatCurrency(metrics.avg_pnl_per_trade), "Average Winning Trade", formatCurrency(metrics.avg_win), "Average Losing Trade", formatCurrency(metrics.avg_loss)],
-    ["Total Number of Trades", String(metrics.total_trades), "Number of Winning Trades", String(metrics.winning_trades), "Number of Losing Trades", String(metrics.losing_trades)],
-    ["Average Hold Time (scratch trades)", "n/a", "Average Hold Time (winning trades)", "n/a", "Average Hold Time (losing trades)", "n/a"],
-    ["Number of Scratch Trades", String(computedStats.scratchTrades), "Max Consecutive Wins", String(metrics.max_win_streak), "Max Consecutive Losses", String(metrics.max_loss_streak)],
-    ["Trade P&L Standard Deviation", "n/a", "System Quality Number (SQN)", "n/a", "Probability of Random Chance", "n/a"],
-    ["Kelly Percentage", "n/a", "K-Ratio", "n/a", "Profit factor", metrics.profit_factor.toFixed(2)],
-    ["Total Commissions", formatCurrency(computedStats.totalCommissions), "Total Fees", "$0.00", "", ""],
-    ["Average position MAE", "n/a", "Average Position MFE", "n/a", "", ""],
+function StatsTable({ stats }: { stats: DetailedStats | null }) {
+  const rows: Array<[string, string, string, string, string, string]> = stats ? [
+    [
+      "Total Gain/Loss", formatCurrency(stats.total_gain_loss),
+      "Largest Gain", formatValue(stats.largest_gain, formatCurrency),
+      "Largest Loss", formatValue(stats.largest_loss, formatCurrency)
+    ],
+    [
+      "Average Daily Gain/Loss", formatCurrency(stats.average_daily_gain_loss),
+      "Average Daily Volume", stats.average_daily_volume.toFixed(1),
+      "Average Per-share Gain/Loss", formatCurrency(stats.average_per_share_gain_loss)
+    ],
+    [
+      "Average Trade Gain/Loss", formatCurrency(stats.average_trade_gain_loss),
+      "Average Winning Trade", formatCurrency(stats.average_winning_trade),
+      "Average Losing Trade", formatCurrency(stats.average_losing_trade)
+    ],
+    [
+      "Total Number of Trades", String(stats.total_number_of_trades),
+      "Number of Winning Trades", String(stats.number_of_winning_trades),
+      "Number of Losing Trades", String(stats.number_of_losing_trades)
+    ],
+    [
+      "Average Hold Time (scratch trades)", formatHoldTime(stats.average_hold_time_scratch_trades_seconds),
+      "Average Hold Time (winning trades)", formatHoldTime(stats.average_hold_time_winning_trades_seconds),
+      "Average Hold Time (losing trades)", formatHoldTime(stats.average_hold_time_losing_trades_seconds)
+    ],
+    [
+      "Number of Scratch Trades", String(stats.number_of_scratch_trades),
+      "Max Consecutive Wins", String(stats.max_consecutive_wins),
+      "Max Consecutive Losses", String(stats.max_consecutive_losses)
+    ],
+    [
+      "Trade P&L Standard Deviation", formatValue(stats.trade_pnl_standard_deviation, (v) => formatCurrency(v)),
+      "System Quality Number (SQN)", formatValue(stats.system_quality_number_sqn, (v) => v.toFixed(2)),
+      "Probability of Random Chance", formatValue(stats.probability_of_random_chance, (v) => `${v.toFixed(1)}%`)
+    ],
+    [
+      "Kelly Percentage", formatValue(stats.kelly_percentage, (v) => `${v.toFixed(1)}%`),
+      "K-Ratio", formatValue(stats.k_ratio, (v) => v.toFixed(2)),
+      "Profit factor", formatValue(stats.profit_factor, (v) => v.toFixed(2))
+    ],
+    [
+      "Total Commissions", formatValue(stats.total_commissions, formatCurrency),
+      "Total Fees", formatValue(stats.total_fees, formatCurrency),
+      "", ""
+    ],
+    [
+      "Average position MAE", formatValue(stats.average_position_mae, formatCurrency),
+      "Average Position MFE", formatValue(stats.average_position_mfe, formatCurrency),
+      "", ""
+    ],
   ] : [
     ["Total Gain/Loss", "$0.00", "Largest Gain", "n/a", "Largest Loss", "n/a"],
     ["Average Daily Gain/Loss", "$0.00", "Average Daily Volume", "0", "Average Per-share Gain/Loss", "$0.00"],
     ["Average Trade Gain/Loss", "n/a", "Average Winning Trade", "n/a", "Average Losing Trade", "n/a"],
     ["Total Number of Trades", "0", "Number of Winning Trades", "0", "Number of Losing Trades", "0"],
-    ["Average Hold Time (scratch trades)", "0", "Average Hold Time (winning trades)", "0", "Average Hold Time (losing trades)", "0"],
+    ["Average Hold Time (scratch trades)", "n/a", "Average Hold Time (winning trades)", "n/a", "Average Hold Time (losing trades)", "n/a"],
     ["Number of Scratch Trades", "0", "Max Consecutive Wins", "n/a", "Max Consecutive Losses", "n/a"],
     ["Trade P&L Standard Deviation", "n/a", "System Quality Number (SQN)", "n/a", "Probability of Random Chance", "n/a"],
     ["Kelly Percentage", "n/a", "K-Ratio", "n/a", "Profit factor", "n/a"],
     ["Total Commissions", "$0.00", "Total Fees", "$0.00", "", ""],
-    ["Average position MAE", "$0.00", "Average Position MFE", "$0.00", "", ""],
+    ["Average position MAE", "n/a", "Average Position MFE", "n/a", "", ""],
   ];
 
   return (
@@ -186,8 +220,7 @@ export default function ReportsPage() {
   const [detailedGroup, setDetailedGroup] = useState<DetailedGroup>("dt");
 
   // Data state
-  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [trades, setTrades] = useState<Trade[]>([]);
+  const [stats, setStats] = useState<DetailedStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filter state
@@ -215,13 +248,8 @@ export default function ReportsPage() {
         end_date: endDate.toISOString().split("T")[0],
       };
 
-      const [metricsData, tradesData] = await Promise.all([
-        dashboardApi.getMetrics(token, params),
-        tradesApi.getAll(token, params),
-      ]);
-
-      setMetrics(metricsData);
-      setTrades(tradesData);
+      const statsData = await reportsApi.getDetailedStats(token, params);
+      setStats(statsData);
     } catch (error) {
       console.error("Failed to load reports data:", error);
     } finally {
@@ -368,7 +396,7 @@ export default function ReportsPage() {
           </div>
         ) : mainTab === "detailed" ? (
           <>
-            <StatsTable metrics={metrics} trades={trades} />
+            <StatsTable stats={stats} />
 
             <div className="flex justify-center">
               <div className="inline-flex rounded-lg bg-white/5 border border-white/10 p-1">
