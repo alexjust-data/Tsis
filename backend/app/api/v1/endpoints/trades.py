@@ -141,13 +141,106 @@ async def delete_trade(trade_id: int, db: DbSession, current_user: CurrentUser):
     await db.commit()
 
 
+def _is_tradervue_format(df: pd.DataFrame) -> bool:
+    """Check if the dataframe is in Tradervue execution format."""
+    cols = set(df.columns)
+    # Tradervue has: Date, Time, Symbol, Quantity, Price, Side
+    # But NOT entry_price/exit_price (those are complete trade formats)
+    has_tradervue_cols = {"symbol", "price", "quantity", "side"}.issubset(cols)
+    has_trade_cols = "entry_price" in cols or "exit_price" in cols
+    return has_tradervue_cols and not has_trade_cols
+
+
+def _process_tradervue_executions(df: pd.DataFrame) -> list[dict]:
+    """
+    Convert Tradervue executions into complete trades.
+    Tradervue format: Date, Time, Symbol, Quantity, Price, Side
+    Side values: B (buy), S (sell), SS (sell short), BC (buy to cover)
+    """
+    trades = []
+
+    # Group by Symbol and Date to find matching entries/exits
+    for (symbol, trade_date), group in df.groupby(["symbol", "date"]):
+        # Separate entries and exits
+        # Long entries: B (buy) | Long exits: S (sell)
+        # Short entries: SS (sell short) | Short exits: BC (buy to cover)
+        entries = []
+        exits = []
+
+        for _, row in group.iterrows():
+            side = str(row["side"]).upper().strip()
+            qty = abs(int(float(row.get("quantity", 0))))
+            price = float(row.get("price", 0))
+            exec_time = row.get("time")
+            # Handle NaN values for optional fee columns
+            comm = float(row.get("commission", 0)) if pd.notna(row.get("commission")) else 0
+            transfee = float(row.get("transfee", 0)) if pd.notna(row.get("transfee")) else 0
+            ecnfee = float(row.get("ecnfee", 0)) if pd.notna(row.get("ecnfee")) else 0
+            commission = comm + transfee + ecnfee
+
+            if side in ("B", "BUY"):  # Long entry
+                entries.append({"qty": qty, "price": price, "time": exec_time, "comm": commission, "type": "long"})
+            elif side in ("S", "SELL"):  # Long exit
+                exits.append({"qty": qty, "price": price, "time": exec_time, "comm": commission, "type": "long"})
+            elif side in ("SS", "SELLSHORT", "SHORT"):  # Short entry
+                entries.append({"qty": qty, "price": price, "time": exec_time, "comm": commission, "type": "short"})
+            elif side in ("BC", "BUYTOCOVER", "COVER"):  # Short exit
+                exits.append({"qty": qty, "price": price, "time": exec_time, "comm": commission, "type": "short"})
+
+        # Match entries with exits to create trades
+        # Simple FIFO matching by type
+        for trade_type in ["long", "short"]:
+            type_entries = [e for e in entries if e["type"] == trade_type]
+            type_exits = [e for e in exits if e["type"] == trade_type]
+
+            if not type_entries or not type_exits:
+                continue
+
+            # Calculate weighted average entry and exit prices
+            total_entry_qty = sum(e["qty"] for e in type_entries)
+            total_exit_qty = sum(e["qty"] for e in type_exits)
+            shares = min(total_entry_qty, total_exit_qty)
+
+            if shares <= 0:
+                continue
+
+            avg_entry = sum(e["qty"] * e["price"] for e in type_entries) / total_entry_qty
+            avg_exit = sum(e["qty"] * e["price"] for e in type_exits) / total_exit_qty
+            total_comm = sum(e["comm"] for e in type_entries) + sum(e["comm"] for e in type_exits)
+
+            # Calculate P&L
+            if trade_type == "long":
+                pnl = (avg_exit - avg_entry) * shares
+            else:
+                pnl = (avg_entry - avg_exit) * shares
+
+            # Get times
+            entry_time = type_entries[0]["time"] if type_entries else None
+            exit_time = type_exits[-1]["time"] if type_exits else None
+
+            trades.append({
+                "date": trade_date,
+                "ticker": symbol,
+                "side": trade_type,
+                "entry_price": avg_entry,
+                "exit_price": avg_exit,
+                "shares": shares,
+                "pnl": pnl,
+                "commissions": total_comm,
+                "entry_time": entry_time,
+                "exit_time": exit_time,
+            })
+
+    return trades
+
+
 @router.post("/import", response_model=dict)
 async def import_trades(
     db: DbSession,
     current_user: CurrentUser,
     file: UploadFile = File(...)
 ):
-    """Import trades from CSV or Excel file"""
+    """Import trades from CSV or Excel file. Supports both complete trades and Tradervue execution format."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No file provided")
 
@@ -171,16 +264,14 @@ async def import_trades(
         # Normalize column names
         df.columns = df.columns.str.strip().str.lower()
 
-        # Map common column names
+        # Map common column names (keeping original for mapping)
         column_mapping = {
-            "symbol": "ticker",
             "stock": "ticker",
             "direction": "side",
             "type": "side",
             "entry": "entry_price",
             "exit": "exit_price",
             "qty": "shares",
-            "quantity": "shares",
             "profit": "pnl",
             "p&l": "pnl",
             "profit/loss": "pnl",
@@ -193,54 +284,99 @@ async def import_trades(
         trades_created = 0
         errors = []
 
-        for idx, row in df.iterrows():
-            try:
-                # Parse date
-                trade_date = pd.to_datetime(row.get("date")).date() if "date" in row else date.today()
+        # Check if this is Tradervue execution format
+        if _is_tradervue_format(df):
+            # Parse dates first for grouping
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"]).dt.date
 
-                # Parse side
-                side_str = str(row.get("side", "long")).lower()
-                side = TradeSide.SHORT if "short" in side_str else TradeSide.LONG
+            # Process executions into trades
+            trade_dicts = _process_tradervue_executions(df)
 
-                # Parse times
-                entry_time = None
-                exit_time = None
-                if "entry_time" in row and pd.notna(row["entry_time"]):
-                    entry_time = pd.to_datetime(str(row["entry_time"])).time()
-                if "exit_time" in row and pd.notna(row["exit_time"]):
-                    exit_time = pd.to_datetime(str(row["exit_time"])).time()
+            for trade_dict in trade_dicts:
+                try:
+                    entry_time = None
+                    exit_time = None
+                    if trade_dict.get("entry_time") and pd.notna(trade_dict["entry_time"]):
+                        entry_time = pd.to_datetime(str(trade_dict["entry_time"])).time()
+                    if trade_dict.get("exit_time") and pd.notna(trade_dict["exit_time"]):
+                        exit_time = pd.to_datetime(str(trade_dict["exit_time"])).time()
 
-                # Get numeric values
-                entry_price = float(row.get("entry_price", 0))
-                exit_price = float(row.get("exit_price", 0))
-                shares = int(float(row.get("shares", 0)))
-                pnl = float(row.get("pnl", 0))
-                commissions = float(row.get("commissions", 0)) if "commissions" in row else 0
+                    trade = Trade(
+                        user_id=current_user.id,
+                        date=trade_dict["date"],
+                        ticker=str(trade_dict["ticker"]).upper().strip(),
+                        side=TradeSide.SHORT if trade_dict["side"] == "short" else TradeSide.LONG,
+                        entry_time=entry_time,
+                        exit_time=exit_time,
+                        entry_price=trade_dict["entry_price"],
+                        exit_price=trade_dict["exit_price"],
+                        shares=trade_dict["shares"],
+                        pnl=trade_dict["pnl"],
+                        commissions=trade_dict["commissions"],
+                        net_pnl=trade_dict["pnl"] - trade_dict["commissions"],
+                    )
 
-                # Skip invalid rows
-                if not row.get("ticker") or shares <= 0:
-                    continue
+                    db.add(trade)
+                    trades_created += 1
+                except Exception as e:
+                    errors.append(f"Trade {trade_dict.get('ticker', 'unknown')}: {str(e)}")
+        else:
+            # Original complete trade format
+            # Map symbol to ticker if present
+            if "symbol" in df.columns and "ticker" not in df.columns:
+                df = df.rename(columns={"symbol": "ticker"})
+            if "quantity" in df.columns and "shares" not in df.columns:
+                df = df.rename(columns={"quantity": "shares"})
 
-                trade = Trade(
-                    user_id=current_user.id,
-                    date=trade_date,
-                    ticker=str(row["ticker"]).upper().strip(),
-                    side=side,
-                    entry_time=entry_time,
-                    exit_time=exit_time,
-                    entry_price=entry_price,
-                    exit_price=exit_price,
-                    shares=shares,
-                    pnl=pnl,
-                    commissions=commissions,
-                    net_pnl=pnl - commissions,
-                )
+            for idx, row in df.iterrows():
+                try:
+                    # Parse date
+                    trade_date = pd.to_datetime(row.get("date")).date() if "date" in row else date.today()
 
-                db.add(trade)
-                trades_created += 1
+                    # Parse side
+                    side_str = str(row.get("side", "long")).lower()
+                    side = TradeSide.SHORT if "short" in side_str else TradeSide.LONG
 
-            except Exception as e:
-                errors.append(f"Row {idx + 1}: {str(e)}")
+                    # Parse times
+                    entry_time = None
+                    exit_time = None
+                    if "entry_time" in row and pd.notna(row["entry_time"]):
+                        entry_time = pd.to_datetime(str(row["entry_time"])).time()
+                    if "exit_time" in row and pd.notna(row["exit_time"]):
+                        exit_time = pd.to_datetime(str(row["exit_time"])).time()
+
+                    # Get numeric values
+                    entry_price = float(row.get("entry_price", 0))
+                    exit_price = float(row.get("exit_price", 0))
+                    shares = int(float(row.get("shares", 0)))
+                    pnl = float(row.get("pnl", 0))
+                    commissions = float(row.get("commissions", 0)) if "commissions" in row else 0
+
+                    # Skip invalid rows
+                    if not row.get("ticker") or shares <= 0:
+                        continue
+
+                    trade = Trade(
+                        user_id=current_user.id,
+                        date=trade_date,
+                        ticker=str(row["ticker"]).upper().strip(),
+                        side=side,
+                        entry_time=entry_time,
+                        exit_time=exit_time,
+                        entry_price=entry_price,
+                        exit_price=exit_price,
+                        shares=shares,
+                        pnl=pnl,
+                        commissions=commissions,
+                        net_pnl=pnl - commissions,
+                    )
+
+                    db.add(trade)
+                    trades_created += 1
+
+                except Exception as e:
+                    errors.append(f"Row {idx + 1}: {str(e)}")
 
         await db.commit()
 
