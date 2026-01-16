@@ -161,22 +161,25 @@ function HourlyChart({
   );
 }
 
-function PriceBarChart({
+function HorizontalBarChart({
   title,
   subtitle,
   data,
   dataKey,
+  labelKey,
   formatValue,
   colorFn,
 }: {
   title: string;
   subtitle?: string;
-  data: PriceRangeStats[];
-  dataKey: "total_pnl" | "trades" | "win_rate";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any[];
+  dataKey: string;
+  labelKey: string;
   formatValue?: (v: number) => string;
   colorFn?: (v: number) => string;
 }) {
-  const values = data.map((d) => d[dataKey] || 0);
+  const values = data.map((d) => Number(d[dataKey]) || 0);
   const maxVal = Math.max(...values.map(Math.abs), 1);
   const defaultFormat = (v: number) => v.toFixed(0);
   const format = formatValue || defaultFormat;
@@ -194,88 +197,26 @@ function PriceBarChart({
           <Info className="h-4 w-4" />
         </button>
       </div>
-      <div className="p-4 h-[220px] flex items-end gap-2">
+      <div className="p-4 flex flex-col gap-2">
         {data.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-white/40 text-[13px]">No data</div>
+          <div className="h-[200px] flex items-center justify-center text-white/40 text-[13px]">No data</div>
         ) : (
           data.map((item, idx) => {
-            const val = item[dataKey] || 0;
-            const label = item.range_label;
-            const heightPct = (Math.abs(val) / maxVal) * 100;
+            const val = Number(item[dataKey]) || 0;
+            const label = String(item[labelKey]);
+            const widthPct = (Math.abs(val) / maxVal) * 100;
             const color = getColor(val);
 
             return (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-1" title={`${label}: ${format(val)}`}>
-                <div className="text-[10px] text-white/70">{format(val)}</div>
-                <div className="w-full h-[140px] flex items-end justify-center">
+              <div key={idx} className="flex items-center gap-3" title={`${label}: ${format(val)}`}>
+                <div className="w-[80px] text-[11px] text-white/60 text-right shrink-0">{label}</div>
+                <div className="flex-1 h-[22px] bg-white/5 rounded overflow-hidden">
                   <div
-                    className="w-full max-w-[40px] rounded-t transition-all"
-                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
+                    className="h-full rounded transition-all"
+                    style={{ width: `${Math.max(widthPct, 2)}%`, backgroundColor: color }}
                   />
                 </div>
-                <div className="text-[9px] text-white/50 truncate max-w-full">{label}</div>
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
-  );
-}
-
-function VolumeBarChart({
-  title,
-  subtitle,
-  data,
-  dataKey,
-  formatValue,
-  colorFn,
-}: {
-  title: string;
-  subtitle?: string;
-  data: VolumeRangeStats[];
-  dataKey: "total_pnl" | "trades" | "win_rate";
-  formatValue?: (v: number) => string;
-  colorFn?: (v: number) => string;
-}) {
-  const values = data.map((d) => d[dataKey] || 0);
-  const maxVal = Math.max(...values.map(Math.abs), 1);
-  const defaultFormat = (v: number) => v.toFixed(0);
-  const format = formatValue || defaultFormat;
-  const defaultColor = (v: number) => (v >= 0 ? "#48d18a" : "#ef4444");
-  const getColor = colorFn || defaultColor;
-
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-      <div className="flex items-start justify-between px-4 py-3 border-b border-white/10">
-        <div>
-          <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
-          {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
-        </div>
-        <button className="text-white/40 hover:text-white/70 transition-colors" aria-label="info">
-          <Info className="h-4 w-4" />
-        </button>
-      </div>
-      <div className="p-4 h-[220px] flex items-end gap-2">
-        {data.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-white/40 text-[13px]">No data</div>
-        ) : (
-          data.map((item, idx) => {
-            const val = item[dataKey] || 0;
-            const label = item.range_label;
-            const heightPct = (Math.abs(val) / maxVal) * 100;
-            const color = getColor(val);
-
-            return (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-1" title={`${label}: ${format(val)}`}>
-                <div className="text-[10px] text-white/70">{format(val)}</div>
-                <div className="w-full h-[140px] flex items-end justify-center">
-                  <div
-                    className="w-full max-w-[40px] rounded-t transition-all"
-                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
-                  />
-                </div>
-                <div className="text-[9px] text-white/50 truncate max-w-full">{label}</div>
+                <div className="w-[60px] text-[11px] text-white/70 text-right shrink-0">{format(val)}</div>
               </div>
             );
           })
@@ -724,34 +665,37 @@ export default function ReportsPage() {
               </div>
             ) : detailedGroup === "ipv" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <PriceBarChart
-                  title="P&L BY PRICE"
+                <HorizontalBarChart
+                  title="TRADE DISTRIBUTION BY PRICE"
+                  subtitle={`Last ${range} Days`}
+                  data={priceVolume?.by_price || []}
+                  dataKey="trades"
+                  labelKey="range_label"
+                  colorFn={() => "#3b82f6"}
+                />
+                <HorizontalBarChart
+                  title="PERFORMANCE BY PRICE"
                   subtitle={`Last ${range} Days`}
                   data={priceVolume?.by_price || []}
                   dataKey="total_pnl"
+                  labelKey="range_label"
                   formatValue={(v) => `$${v.toFixed(0)}`}
                 />
-                <PriceBarChart
-                  title="WIN % BY PRICE"
-                  subtitle={`Last ${range} Days`}
-                  data={priceVolume?.by_price || []}
-                  dataKey="win_rate"
-                  formatValue={(v) => `${v.toFixed(0)}%`}
-                  colorFn={(v) => (v >= 50 ? "#48d18a" : "#f59e0b")}
-                />
-                <VolumeBarChart
-                  title="P&L BY VOLUME"
-                  subtitle={`Last ${range} Days`}
-                  data={priceVolume?.by_volume || []}
-                  dataKey="total_pnl"
-                  formatValue={(v) => `$${v.toFixed(0)}`}
-                />
-                <VolumeBarChart
-                  title="TRADES BY VOLUME"
+                <HorizontalBarChart
+                  title="DISTRIBUTION BY VOLUME TRADED"
                   subtitle={`Last ${range} Days`}
                   data={priceVolume?.by_volume || []}
                   dataKey="trades"
+                  labelKey="range_label"
                   colorFn={() => "#3b82f6"}
+                />
+                <HorizontalBarChart
+                  title="PERFORMANCE BY VOLUME TRADED"
+                  subtitle={`Last ${range} Days`}
+                  data={priceVolume?.by_volume || []}
+                  dataKey="total_pnl"
+                  labelKey="range_label"
+                  formatValue={(v) => `$${v.toFixed(0)}`}
                 />
               </div>
             ) : detailedGroup === "ins" ? (
