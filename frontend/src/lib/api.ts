@@ -258,6 +258,20 @@ export const reportsApi = {
     const query = searchParams.toString();
     return fetchApi<DaysTimesData>(`/reports/detailed/days-times${query ? `?${query}` : ""}`, { token });
   },
+
+  getPriceVolume: (
+    token: string,
+    params?: { ticker?: string; side?: "long" | "short"; start_date?: string; end_date?: string }
+  ) => {
+    const searchParams = new URLSearchParams();
+    if (params?.ticker) searchParams.append("ticker", params.ticker);
+    if (params?.side) searchParams.append("side", params.side);
+    if (params?.start_date) searchParams.append("start_date", params.start_date);
+    if (params?.end_date) searchParams.append("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    return fetchApi<PriceVolumeData>(`/reports/detailed/price-volume${query ? `?${query}` : ""}`, { token });
+  },
 };
 
 // Types
@@ -443,6 +457,33 @@ export interface HourStats {
 export interface DaysTimesData {
   by_day: DayStats[];
   by_hour: HourStats[];
+}
+
+export interface PriceRangeStats {
+  range_label: string;
+  min_price: number;
+  max_price: number;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
+export interface VolumeRangeStats {
+  range_label: string;
+  min_shares: number;
+  max_shares: number;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
+export interface PriceVolumeData {
+  by_price: PriceRangeStats[];
+  by_volume: VolumeRangeStats[];
 }
 
 export interface DetailedStats {

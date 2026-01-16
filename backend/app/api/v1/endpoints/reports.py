@@ -9,7 +9,11 @@ from sqlalchemy import select
 
 from app.api.deps import DbSession, CurrentUser
 from app.models.trade import Trade, TradeSide
-from app.schemas.reports import DetailedStatsResponse, DaysTimesResponse, DayStats, HourStats
+from app.schemas.reports import (
+    DetailedStatsResponse,
+    DaysTimesResponse, DayStats, HourStats,
+    PriceVolumeResponse, PriceRangeStats, VolumeRangeStats,
+)
 
 router = APIRouter()
 
@@ -263,3 +267,121 @@ async def days_times_stats(
             ))
 
     return DaysTimesResponse(by_day=by_day, by_hour=by_hour)
+
+
+# Price ranges for grouping
+PRICE_RANGES = [
+    (0, 10, "$0-10"),
+    (10, 25, "$10-25"),
+    (25, 50, "$25-50"),
+    (50, 100, "$50-100"),
+    (100, 250, "$100-250"),
+    (250, float("inf"), "$250+"),
+]
+
+# Volume/shares ranges for grouping
+VOLUME_RANGES = [
+    (1, 100, "1-100"),
+    (100, 500, "100-500"),
+    (500, 1000, "500-1K"),
+    (1000, 5000, "1K-5K"),
+    (5000, float("inf"), "5K+"),
+]
+
+
+@router.get("/detailed/price-volume", response_model=PriceVolumeResponse)
+async def price_volume_stats(
+    db: DbSession,
+    current_user: CurrentUser,
+    ticker: Optional[str] = None,
+    side: Optional[TradeSide] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    """Aggregated stats by entry price and volume/shares for charts."""
+
+    q = select(Trade).where(Trade.user_id == current_user.id)
+    if ticker:
+        q = q.where(Trade.ticker == ticker.upper())
+    if side:
+        q = q.where(Trade.side == side)
+    if start_date:
+        q = q.where(Trade.date >= start_date)
+    if end_date:
+        q = q.where(Trade.date <= end_date)
+
+    res = await db.execute(q)
+    trades = res.scalars().all()
+
+    if not trades:
+        return PriceVolumeResponse(by_price=[], by_volume=[])
+
+    # Initialize price range buckets
+    price_data = {r[2]: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0, "min": r[0], "max": r[1]}
+                  for r in PRICE_RANGES}
+
+    # Initialize volume range buckets
+    volume_data = {r[2]: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0, "min": r[0], "max": r[1]}
+                   for r in VOLUME_RANGES}
+
+    for t in trades:
+        entry_price = float(t.entry_price)
+        shares = int(t.shares)
+        pnl = float(t.pnl)
+
+        # Find price range
+        for min_p, max_p, label in PRICE_RANGES:
+            if min_p <= entry_price < max_p:
+                price_data[label]["pnl"] += pnl
+                price_data[label]["trades"] += 1
+                if pnl > 0:
+                    price_data[label]["winners"] += 1
+                elif pnl < 0:
+                    price_data[label]["losers"] += 1
+                break
+
+        # Find volume range
+        for min_v, max_v, label in VOLUME_RANGES:
+            if min_v <= shares < max_v:
+                volume_data[label]["pnl"] += pnl
+                volume_data[label]["trades"] += 1
+                if pnl > 0:
+                    volume_data[label]["winners"] += 1
+                elif pnl < 0:
+                    volume_data[label]["losers"] += 1
+                break
+
+    # Build response - only include ranges with trades
+    by_price = []
+    for min_p, max_p, label in PRICE_RANGES:
+        d = price_data[label]
+        if d["trades"] > 0:
+            win_rate = _safe_div(d["winners"], d["trades"]) * 100
+            by_price.append(PriceRangeStats(
+                range_label=label,
+                min_price=min_p,
+                max_price=max_p if max_p != float("inf") else 999999,
+                total_pnl=round(d["pnl"], 2),
+                trades=d["trades"],
+                winners=d["winners"],
+                losers=d["losers"],
+                win_rate=round(win_rate, 1),
+            ))
+
+    by_volume = []
+    for min_v, max_v, label in VOLUME_RANGES:
+        d = volume_data[label]
+        if d["trades"] > 0:
+            win_rate = _safe_div(d["winners"], d["trades"]) * 100
+            by_volume.append(VolumeRangeStats(
+                range_label=label,
+                min_shares=min_v,
+                max_shares=int(max_v) if max_v != float("inf") else 999999,
+                total_pnl=round(d["pnl"], 2),
+                trades=d["trades"],
+                winners=d["winners"],
+                losers=d["losers"],
+                win_rate=round(win_rate, 1),
+            ))
+
+    return PriceVolumeResponse(by_price=by_price, by_volume=by_volume)

@@ -33,6 +33,36 @@ class DaysTimesResponse(BaseModel):
     by_hour: List[HourStats] = []
 
 
+class PriceRangeStats(BaseModel):
+    """Stats for a price range bucket."""
+    range_label: str  # e.g., "$0-10", "$10-25"
+    min_price: float
+    max_price: float
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
+class VolumeRangeStats(BaseModel):
+    """Stats for a volume/shares range bucket."""
+    range_label: str  # e.g., "1-100", "100-500"
+    min_shares: int
+    max_shares: int
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
+class PriceVolumeResponse(BaseModel):
+    """Aggregated data by price and volume ranges for charts."""
+    by_price: List[PriceRangeStats] = []
+    by_volume: List[VolumeRangeStats] = []
+
+
 class DetailedStatsResponse(BaseModel):
     # Monetary / core
     total_gain_loss: float = 0.0
