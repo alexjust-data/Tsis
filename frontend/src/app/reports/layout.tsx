@@ -31,7 +31,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
   const ACCENT = "#48d18a";
   // Simple active detection without usePathname (keeps layout server component).
   // For a richer experience, you can convert to client + usePathname.
-  const active = "reports";
+  const active: string = "reports";
 
   return (
     <div className="min-h-screen bg-[#0b1220] text-white">
