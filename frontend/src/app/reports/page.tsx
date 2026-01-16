@@ -1,12 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useAuthStore } from "@/lib/auth";
+import { dashboardApi, tradesApi, type DashboardMetrics, type Trade } from "@/lib/api";
 import {
   CalendarDays,
   Check,
   ChevronDown,
   Filter,
   Info,
+  RefreshCw,
   SlidersHorizontal,
   Trash2,
 } from "lucide-react";
@@ -89,9 +92,50 @@ function SelectLike({
   );
 }
 
-function StatsTable() {
-  // Placeholder values: wire these to your backend later.
-  const rows: Array<[string, string, string, string, string, string]> = [
+function formatCurrency(value: number): string {
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+  }).format(Math.abs(value));
+  return value < 0 ? `-${formatted}` : formatted;
+}
+
+function formatPercent(value: number): string {
+  return `${value.toFixed(1)}%`;
+}
+
+function StatsTable({ metrics, trades }: { metrics: DashboardMetrics | null; trades: Trade[] }) {
+  // Compute additional stats from trades
+  const computedStats = useMemo(() => {
+    if (!trades || trades.length === 0) {
+      return {
+        totalCommissions: 0,
+        avgVolume: 0,
+        scratchTrades: 0,
+      };
+    }
+
+    const totalCommissions = trades.reduce((sum, t) => sum + (t.commissions || 0), 0);
+    const totalShares = trades.reduce((sum, t) => sum + t.shares, 0);
+    const avgVolume = totalShares / trades.length;
+    const scratchTrades = trades.filter(t => Math.abs(t.pnl) < 1).length;
+
+    return { totalCommissions, avgVolume, scratchTrades };
+  }, [trades]);
+
+  const rows: Array<[string, string, string, string, string, string]> = metrics ? [
+    ["Total Gain/Loss", formatCurrency(metrics.total_pnl), "Largest Gain", formatCurrency(metrics.best_trade), "Largest Loss", formatCurrency(metrics.worst_trade)],
+    ["Average Daily Gain/Loss", formatCurrency(metrics.avg_pnl_per_trade), "Average Daily Volume", computedStats.avgVolume.toFixed(0), "Average Per-share Gain/Loss", "n/a"],
+    ["Average Trade Gain/Loss", formatCurrency(metrics.avg_pnl_per_trade), "Average Winning Trade", formatCurrency(metrics.avg_win), "Average Losing Trade", formatCurrency(metrics.avg_loss)],
+    ["Total Number of Trades", String(metrics.total_trades), "Number of Winning Trades", String(metrics.winning_trades), "Number of Losing Trades", String(metrics.losing_trades)],
+    ["Average Hold Time (scratch trades)", "n/a", "Average Hold Time (winning trades)", "n/a", "Average Hold Time (losing trades)", "n/a"],
+    ["Number of Scratch Trades", String(computedStats.scratchTrades), "Max Consecutive Wins", String(metrics.max_win_streak), "Max Consecutive Losses", String(metrics.max_loss_streak)],
+    ["Trade P&L Standard Deviation", "n/a", "System Quality Number (SQN)", "n/a", "Probability of Random Chance", "n/a"],
+    ["Kelly Percentage", "n/a", "K-Ratio", "n/a", "Profit factor", metrics.profit_factor.toFixed(2)],
+    ["Total Commissions", formatCurrency(computedStats.totalCommissions), "Total Fees", "$0.00", "", ""],
+    ["Average position MAE", "n/a", "Average Position MFE", "n/a", "", ""],
+  ] : [
     ["Total Gain/Loss", "$0.00", "Largest Gain", "n/a", "Largest Loss", "n/a"],
     ["Average Daily Gain/Loss", "$0.00", "Average Daily Volume", "0", "Average Per-share Gain/Loss", "$0.00"],
     ["Average Trade Gain/Loss", "n/a", "Average Winning Trade", "n/a", "Average Losing Trade", "n/a"],
@@ -135,13 +179,55 @@ function StatsTable() {
 }
 
 export default function ReportsPage() {
+  const { token } = useAuthStore();
   const [mainTab, setMainTab] = useState<MainTab>("detailed");
   const [timeTab, setTimeTab] = useState<TimeTab>("recent");
   const [range, setRange] = useState<"30" | "60" | "90">("30");
   const [detailedGroup, setDetailedGroup] = useState<DetailedGroup>("dt");
 
-  // Filter state (UI only for now)
+  // Data state
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Filter state
   const [symbol] = useState<string>("");
+
+  // Load data on mount and when range changes
+  useEffect(() => {
+    if (token) {
+      loadData();
+    }
+  }, [token, range]);
+
+  const loadData = async () => {
+    if (!token) return;
+
+    setIsLoading(true);
+    try {
+      // Calculate date range based on selected range
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - parseInt(range));
+
+      const params = {
+        start_date: startDate.toISOString().split("T")[0],
+        end_date: endDate.toISOString().split("T")[0],
+      };
+
+      const [metricsData, tradesData] = await Promise.all([
+        dashboardApi.getMetrics(token, params),
+        tradesApi.getAll(token, params),
+      ]);
+
+      setMetrics(metricsData);
+      setTrades(tradesData);
+    } catch (error) {
+      console.error("Failed to load reports data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const mainTabs = useMemo(
     () =>
@@ -276,9 +362,13 @@ export default function ReportsPage() {
 
       {/* Content */}
       <div className="mt-6 space-y-6">
-        {mainTab === "detailed" ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <RefreshCw className="h-8 w-8 animate-spin text-[#48d18a]" />
+          </div>
+        ) : mainTab === "detailed" ? (
           <>
-            <StatsTable />
+            <StatsTable metrics={metrics} trades={trades} />
 
             <div className="flex justify-center">
               <div className="inline-flex rounded-lg bg-white/5 border border-white/10 p-1">
