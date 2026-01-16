@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuthStore } from "@/lib/auth";
-import { reportsApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type MonthStats, type DurationStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
+import { reportsApi, tradesApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type MonthStats, type DurationStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
 import {
   CalendarDays,
   Check,
@@ -565,6 +565,7 @@ export default function ReportsPage() {
 
   // Filter state
   const [symbol] = useState<string>("");
+  const [hasRecalculated, setHasRecalculated] = useState(false);
 
   // Load data on mount and when range or timeframe changes
   useEffect(() => {
@@ -578,6 +579,16 @@ export default function ReportsPage() {
 
     setIsLoading(true);
     try {
+      // Recalculate durations once per session if not done yet
+      if (!hasRecalculated) {
+        try {
+          await tradesApi.recalculateDurations(token);
+          setHasRecalculated(true);
+        } catch (e) {
+          console.log("Duration recalculation skipped:", e);
+        }
+      }
+
       // Calculate date range based on selected range
       const endDate = new Date();
       const startDate = new Date();

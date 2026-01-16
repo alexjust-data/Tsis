@@ -136,6 +136,12 @@ export const tradesApi = {
       errors: string[];
     }>;
   },
+
+  recalculateDurations: (token: string) =>
+    fetchApi<{ message: string; trades_updated: number }>("/trades/recalculate-durations", {
+      method: "POST",
+      token,
+    }),
 };
 
 // Dashboard API
