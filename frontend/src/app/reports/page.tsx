@@ -1,668 +1,365 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-// NOTE: /reports has its own layout (src/app/reports/layout.tsx) to match the reference UI.
-import { useAuthStore } from "@/lib/auth";
-import { tradesApi, type Trade } from "@/lib/api";
-import { CalendarDays, Check, ChevronDown, SlidersHorizontal, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  BarChart,
-  Bar,
-} from "recharts";
+  CalendarDays,
+  Check,
+  ChevronDown,
+  Filter,
+  Info,
+  SlidersHorizontal,
+  Trash2,
+} from "lucide-react";
 
-const UI = {
-  // Tuned to closely match the reference UI (dark, slightly blue-tinted)
-  page: "#0b1220",
-  panel: "#161b24",   // cards / controls
-  panel2: "#121826",  // chart wells
-  border: "#273041",
-  text: "#e6edf6",
-  muted: "#7c889e",
-  accent: "#3ecf9a", // pastel accent (brand-tunable)
-};
+// Accent: softer/pastel green
+const ACCENT = "#48d18a";
 
-function cls(...parts: Array<string | false | undefined | null>) {
-  return parts.filter(Boolean).join(" ");
-}
+type MainTab = "overview" | "detailed" | "winloss" | "drawdown" | "compare" | "tagbreak" | "advanced";
+type TimeTab = "recent" | "ymd" | "calendar";
+type DetailedGroup = "dt" | "ipv" | "ins" | "mkt" | "wl" | "liq";
 
-function formatCurrency(value: number): string {
-  const formatted = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(Math.abs(value));
-  return value < 0 ? `-${formatted}` : formatted;
-}
-
-function TopSelect({ label, value, onChange, options, width = 150 }: { label: string; value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; width?: number }) {
+function Card({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[12px]" style={{ color: UI.muted }}>{label}</span>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className={cls(
-            "h-10 rounded-md px-3 pr-9 text-[13px] outline-none",
-            "border",
-          )}
-          style={{ width, background: "#1a2232", borderColor: UI.border, color: UI.text }}
-        >
-          {options.map((o) => (
-            <option key={o.value} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown className="h-4 w-4 absolute right-3 top-1/2 -translate-y-1/2" style={{ color: UI.muted }} />
-      </div>
-    </div>
-  );
-}
-
-function TopInput({ label, placeholder, value, onChange, width = 150 }: { label: string; placeholder: string; value: string; onChange: (v: string) => void; width?: number }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-[12px]" style={{ color: UI.muted }}>{label}</span>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="h-10 rounded-md px-3 text-[13px] outline-none border"
-        style={{ width, background: "#1a2232", borderColor: UI.border, color: UI.text }}
-      />
-    </div>
-  );
-}
-
-type MainTab = "overview" | "detailed" | "winloss" | "drawdown" | "compare" | "tags" | "advanced";
-type SubMode = "recent" | "yearMonthDay" | "calendar";
-type DetailedSub = "days" | "times" | "price" | "volume" | "instrument" | "market" | "win" | "loss" | "expectation" | "liquidity";
-
-export default function ReportsPage() {
-  const { token } = useAuthStore();
-
-  // Data
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // UI state
-  const [tab, setTab] = useState<MainTab>("overview");
-  const [subMode, setSubMode] = useState<SubMode>("recent");
-
-  const [detailedSub, setDetailedSub] = useState<DetailedSub>("days");
-
-  // "Screenshot-like" filters
-  const [symbol, setSymbol] = useState("");
-  const [tag, setTag] = useState("all");
-  const [side, setSide] = useState("all");
-  const [duration, setDuration] = useState("all");
-  const [dateRange, setDateRange] = useState("");
-  const [daysRange, setDaysRange] = useState<30 | 60 | 90>(30);
-
-  // "P&L type / view mode / report type" row
-  const [plType, setPlType] = useState("gross");
-  const [viewMode, setViewMode] = useState("value");
-  const [reportType, setReportType] = useState("aggregate");
-
-  useEffect(() => {
-    if (!token) return;
-    (async () => {
-      setIsLoading(true);
-      try {
-        const data = await tradesApi.getAll(token);
-        setTrades(data);
-      } catch (e) {
-        console.error("Failed to load trades:", e);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
-  }, [token]);
-
-  const filteredTrades = useMemo(() => {
-    let out = [...trades];
-    if (symbol.trim()) {
-      const s = symbol.trim().toUpperCase();
-      out = out.filter((t) => (t.ticker || "").toUpperCase().includes(s));
-    }
-    // dateRange parsing can be wired later (kept as a UI control to match reference)
-    if (side !== "all") out = out.filter((t) => t.side === side);
-    // duration/tag are placeholders for now (you can wire them later)
-    return out;
-  }, [trades, symbol, side]);
-
-  const dailySeries = useMemo(() => {
-    if (!filteredTrades.length) return [] as { date: string; pnl: number; cumulative: number; trades: number; winPct: number }[];
-
-    // group by day
-    const byDay: Record<string, { pnl: number; trades: number; winners: number }> = {};
-    for (const t of filteredTrades) {
-      const day = (t.date || "").split("T")[0];
-      if (!day) continue;
-      if (!byDay[day]) byDay[day] = { pnl: 0, trades: 0, winners: 0 };
-      byDay[day].pnl += t.pnl;
-      byDay[day].trades += 1;
-      if (t.pnl > 0) byDay[day].winners += 1;
-    }
-
-    // sort and cum
-    const days = Object.keys(byDay).sort();
-    let cum = 0;
-    const res = days.map((d) => {
-      const v = byDay[d];
-      cum += v.pnl;
-      return {
-        date: new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        pnl: v.pnl,
-        cumulative: cum,
-        trades: v.trades,
-        winPct: v.trades ? (v.winners / v.trades) * 100 : 0,
-      };
-    });
-    return res;
-  }, [filteredTrades]);
-
-  const seriesN = useMemo(() => dailySeries.slice(-daysRange), [dailySeries, daysRange]);
-
-  const resetFilters = () => {
-    setSymbol("");
-    setTag("all");
-    setSide("all");
-    setDuration("all");
-    setDateRange("");
-    setDaysRange(30);
-  };
-
-  const detailedNav = [
-    { key: "days", label: "Days" },
-    { key: "times", label: "Times" },
-    { key: "price", label: "Price" },
-    { key: "volume", label: "Volume" },
-    { key: "instrument", label: "Instrument" },
-    { key: "market", label: "Market Behavior" },
-    { key: "win", label: "Win" },
-    { key: "loss", label: "Loss" },
-    { key: "expectation", label: "Expectation" },
-    { key: "liquidity", label: "Liquidity" },
-  ] as const;
-
-  const renderDetailed = () => {
-    // UI-only scaffolding matching the reference sections.
-    // You can wire charts/tables to real data later.
-    const commonCard = (title: string, subtitle?: string) => (
-      <div
-        className="rounded-xl border overflow-hidden"
-        style={{ background: UI.panel, borderColor: UI.border }}
-      >
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div>
-            <div className="text-[13px] font-semibold tracking-wide" style={{ color: UI.text }}>{title}</div>
-            {subtitle ? (
-              <div className="text-[12px] mt-0.5" style={{ color: UI.muted }}>{subtitle}</div>
-            ) : null}
-          </div>
-          <div className="text-[12px]" style={{ color: UI.muted }}>i</div>
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+      <div className="flex items-start justify-between px-4 py-3 border-b border-white/10">
+        <div>
+          <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
+          {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
         </div>
-        <div className="h-[220px] border-t" style={{ borderColor: UI.border, background: UI.panel2 }} />
+        <button className="text-white/40 hover:text-white/70 transition-colors" aria-label="info">
+          <Info className="h-4 w-4" />
+        </button>
       </div>
-    );
+      <div className="h-[220px]" />
+    </div>
+  );
+}
 
-    switch (detailedSub) {
-      case "days":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("P&L by Day", "(Last 30 Days)")}
-            {commonCard("Win % by Day", "(Last 30 Days)")}
-            {commonCard("Trades by Day", "(Last 30 Days)")}
-            {commonCard("Avg P&L by Day", "(Last 30 Days)")}
-          </div>
-        );
-      case "times":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("P&L by Time", "(Session)")}
-            {commonCard("Win % by Time", "(Session)")}
-            {commonCard("Trades by Time", "(Session)")}
-            {commonCard("Avg P&L by Time", "(Session)")}
-          </div>
-        );
-      case "price":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("P&L by Price")}
-            {commonCard("Win % by Price")}
-            {commonCard("Trades by Price")}
-            {commonCard("Avg P&L by Price")}
-          </div>
-        );
-      case "volume":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("P&L by Volume")}
-            {commonCard("Win % by Volume")}
-            {commonCard("Trades by Volume")}
-            {commonCard("Avg P&L by Volume")}
-          </div>
-        );
-      case "instrument":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("P&L by Instrument")}
-            {commonCard("Win % by Instrument")}
-            {commonCard("Trades by Instrument")}
-            {commonCard("Avg P&L by Instrument")}
-          </div>
-        );
-      case "market":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("Market Behavior", "Context metrics")}
-            {commonCard("Performance by Regime")}
-            {commonCard("Volatility Bucket")}
-            {commonCard("Trend / Range Bucket")}
-          </div>
-        );
-      case "win":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("Winning Trades")}
-            {commonCard("Winners Distribution")}
-            {commonCard("Avg Winner")}
-            {commonCard("Winner Duration")}
-          </div>
-        );
-      case "loss":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("Losing Trades")}
-            {commonCard("Losers Distribution")}
-            {commonCard("Avg Loser")}
-            {commonCard("Loser Duration")}
-          </div>
-        );
-      case "expectation":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("Expectation", "Edge decomposition")}
-            {commonCard("Payoff Ratio")}
-            {commonCard("Win Rate")}
-            {commonCard("Expectancy Over Time")}
-          </div>
-        );
-      case "liquidity":
-        return (
-          <div className="grid grid-cols-2 gap-6">
-            {commonCard("Liquidity", "Slippage / spread proxies")}
-            {commonCard("Fill Quality")}
-            {commonCard("Size vs Liquidity")}
-            {commonCard("Impact")}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+function PillTabs<T extends string>({
+  value,
+  onChange,
+  items,
+}: {
+  value: T;
+  onChange: (v: T) => void;
+  items: { value: T; label: string }[];
+}) {
+  return (
+    <div className="inline-flex rounded-lg bg-white/5 border border-white/10 p-1">
+      {items.map((it) => (
+        <button
+          key={it.value}
+          onClick={() => onChange(it.value)}
+          className={`px-3 py-1.5 text-[12px] rounded-md transition-colors ${
+            value === it.value ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+          }`}
+        >
+          {it.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SelectLike({
+  label,
+  value,
+  placeholder,
+  width,
+  onClick,
+}: {
+  label: string;
+  value?: string;
+  placeholder?: string;
+  width?: number;
+  onClick?: () => void;
+}) {
+  return (
+    <div style={{ width: width ? `${width}px` : undefined }}>
+      <div className="text-[12px] text-white/55 mb-1">{label}</div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full h-10 px-3 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white flex items-center justify-between hover:border-white/20 transition-colors"
+      >
+        <span className={value ? "text-white" : "text-white/50"}>{value ?? placeholder ?? "Select"}</span>
+        <ChevronDown className="h-4 w-4 text-white/50" />
+      </button>
+    </div>
+  );
+}
+
+function StatsTable() {
+  // Placeholder values: wire these to your backend later.
+  const rows: Array<[string, string, string, string, string, string]> = [
+    ["Total Gain/Loss", "$0.00", "Largest Gain", "n/a", "Largest Loss", "n/a"],
+    ["Average Daily Gain/Loss", "$0.00", "Average Daily Volume", "0", "Average Per-share Gain/Loss", "$0.00"],
+    ["Average Trade Gain/Loss", "n/a", "Average Winning Trade", "n/a", "Average Losing Trade", "n/a"],
+    ["Total Number of Trades", "0", "Number of Winning Trades", "0", "Number of Losing Trades", "0"],
+    ["Average Hold Time (scratch trades)", "0", "Average Hold Time (winning trades)", "0", "Average Hold Time (losing trades)", "0"],
+    ["Number of Scratch Trades", "0", "Max Consecutive Wins", "n/a", "Max Consecutive Losses", "n/a"],
+    ["Trade P&L Standard Deviation", "n/a", "System Quality Number (SQN)", "n/a", "Probability of Random Chance", "n/a"],
+    ["Kelly Percentage", "n/a", "K-Ratio", "n/a", "Profit factor", "n/a"],
+    ["Total Commissions", "$0.00", "Total Fees", "$0.00", "", ""],
+    ["Average position MAE", "$0.00", "Average Position MFE", "$0.00", "", ""],
+  ];
 
   return (
-    <div className="min-h-screen" style={{ background: UI.page }}>
-      <div className="px-8 pt-6 pb-10">
-          {/* Title */}
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-[28px] font-semibold" style={{ color: UI.text }}>Reports</h1>
-            <div className="flex items-center gap-3">
-              <button
-                className="h-10 px-4 rounded-md border text-[13px] flex items-center gap-2"
-                style={{ background: UI.panel, borderColor: UI.border, color: UI.text }}
-              >
-                Custom Filters <ChevronDown className="h-4 w-4" style={{ color: UI.muted }} />
-              </button>
-            </div>
-          </div>
-
-          {/* Filters row (screenshot-like) */}
-          <div className="flex flex-wrap items-end gap-4">
-            <TopInput label="Symbol" placeholder="Symbol" value={symbol} onChange={setSymbol} width={130} />
-            <TopSelect
-              label="Tags"
-              value={tag}
-              onChange={setTag}
-              width={150}
-              options={[
-                { value: "all", label: "Select" },
-                { value: "A+", label: "A+" },
-                { value: "B", label: "B" },
-              ]}
-            />
-            <TopSelect
-              label="Side"
-              value={side}
-              onChange={setSide}
-              width={150}
-              options={[
-                { value: "all", label: "All" },
-                { value: "long", label: "Long" },
-                { value: "short", label: "Short" },
-              ]}
-            />
-            <TopSelect
-              label="Duration"
-              value={duration}
-              onChange={setDuration}
-              width={150}
-              options={[
-                { value: "all", label: "All" },
-                { value: "intraday", label: "Intraday" },
-                { value: "multiday", label: "Multi-day" },
-              ]}
-            />
-
-            {/* From - To (single control like reference) */}
-            <div className="flex flex-col gap-1">
-              <span className="text-[12px]" style={{ color: UI.muted }}>From - To</span>
-              <div className="relative">
-                <CalendarDays className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: UI.muted }} />
-                <input
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  placeholder="From - To"
-                  className="h-10 w-[260px] rounded-md pl-10 pr-3 text-[13px] outline-none border"
-                  style={{ background: "#1a2232", borderColor: UI.border, color: UI.text }}
-                />
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+        <div className="text-[16px] font-semibold">Stats</div>
+        <Info className="h-4 w-4 text-white/50" />
+      </div>
+      <div className="p-4">
+        <div className="grid grid-cols-3 gap-0 rounded-lg overflow-hidden border border-white/10">
+          {rows.map((r, idx) => (
+            <div key={idx} className="grid grid-cols-2 md:grid-cols-2 col-span-3 bg-white/0">
+              <div className="grid grid-cols-2 col-span-1 border-b border-white/10 border-r border-white/10">
+                <div className="px-3 py-2 text-[13px] text-white/65">{r[0]}</div>
+                <div className="px-3 py-2 text-[13px] text-white font-semibold text-right">{r[1]}</div>
+              </div>
+              <div className="grid grid-cols-2 col-span-1 border-b border-white/10 border-r border-white/10">
+                <div className="px-3 py-2 text-[13px] text-white/65">{r[2]}</div>
+                <div className="px-3 py-2 text-[13px] text-white font-semibold text-right">{r[3]}</div>
+              </div>
+              <div className="grid grid-cols-2 col-span-1 border-b border-white/10">
+                <div className="px-3 py-2 text-[13px] text-white/65">{r[4]}</div>
+                <div className="px-3 py-2 text-[13px] text-white font-semibold text-right">{r[5]}</div>
               </div>
             </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <button
-              className="h-10 px-4 rounded-md border text-[13px] flex items-center gap-2"
-              style={{ background: "#1a2232", borderColor: UI.border, color: UI.text }}
-              type="button"
-              title="Advanced"
-            >
-              <SlidersHorizontal className="h-4 w-4" style={{ color: UI.muted }} />
+export default function ReportsPage() {
+  const [mainTab, setMainTab] = useState<MainTab>("detailed");
+  const [timeTab, setTimeTab] = useState<TimeTab>("recent");
+  const [range, setRange] = useState<"30" | "60" | "90">("30");
+  const [detailedGroup, setDetailedGroup] = useState<DetailedGroup>("dt");
+
+  // Filter state (UI only for now)
+  const [symbol] = useState<string>("");
+
+  const mainTabs = useMemo(
+    () =>
+      [
+        { value: "overview", label: "Overview" },
+        { value: "detailed", label: "Detailed" },
+        { value: "winloss", label: "Win vs Loss Days" },
+        { value: "drawdown", label: "Drawdown" },
+        { value: "compare", label: "Compare" },
+        { value: "tagbreak", label: "Tag Breakdown" },
+        { value: "advanced", label: "Advanced" },
+      ] as const,
+    []
+  );
+
+  const detailedGroups: Array<{ value: DetailedGroup; label: string }> = [
+    { value: "dt", label: "Days/Times" },
+    { value: "ipv", label: "Price/Volume" },
+    { value: "ins", label: "Instrument" },
+    { value: "mkt", label: "Market Behavior" },
+    { value: "wl", label: "Win/Loss/Expectation" },
+    { value: "liq", label: "Liquidity" },
+  ];
+
+  return (
+    <div className="p-6">
+      {/* Top row */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-[34px] leading-none font-semibold tracking-tight">Reports</h1>
+        </div>
+
+        <button className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white/80 hover:text-white hover:border-white/20 transition-colors flex items-center gap-2">
+          Custom Filters
+          <ChevronDown className="h-4 w-4" />
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="mt-6">
+        <div className="grid grid-cols-12 gap-4 items-end">
+          <div className="col-span-12 md:col-span-2">
+            <SelectLike label="Symbol" value={symbol || undefined} placeholder="Symbol" />
+          </div>
+          <div className="col-span-12 md:col-span-3">
+            <SelectLike label="Tags" value={"Select"} />
+          </div>
+          <div className="col-span-12 md:col-span-2">
+            <SelectLike label="Side" value={"All"} />
+          </div>
+          <div className="col-span-12 md:col-span-2">
+            <SelectLike label="Duration" value={"All"} />
+          </div>
+          <div className="col-span-12 md:col-span-3">
+            <div>
+              <div className="text-[12px] text-white/55 mb-1">From - To</div>
+              <div className="h-10 px-3 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white/50 flex items-center gap-2">
+                <CalendarDays className="h-4 w-4 text-white/45" />
+                <span>From - To</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-12 flex gap-3 mt-2">
+            <button className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white/85 hover:border-white/20 transition-colors flex items-center gap-2">
+              <SlidersHorizontal className="h-4 w-4 text-white/60" />
               Advanced
             </button>
-            <button
-              className="h-10 w-10 rounded-md border flex items-center justify-center"
-              style={{ background: "#1a2232", borderColor: UI.border, color: UI.text }}
-              type="button"
-              onClick={resetFilters}
-              title="Reset"
-            >
-              <Trash2 className="h-4 w-4" style={{ color: UI.muted }} />
+            <button className="h-10 w-10 rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/20 transition-colors flex items-center justify-center" aria-label="reset">
+              <Trash2 className="h-4 w-4" />
             </button>
             <button
-              className="h-10 w-10 rounded-md flex items-center justify-center"
-              style={{ background: UI.accent, color: "white" }}
-              type="button"
-              title="Apply"
+              className="h-10 w-10 rounded-lg text-[#06130b] flex items-center justify-center"
+              style={{ backgroundColor: ACCENT }}
+              aria-label="apply"
             >
               <Check className="h-4 w-4" />
             </button>
           </div>
+        </div>
+      </div>
 
-          {/* Tabs row */}
-          <div className="mt-6 border-b" style={{ borderColor: UI.border }}>
-            <div className="flex items-center gap-7">
-              {(
-                [
-                  ["overview", "Overview"],
-                  ["detailed", "Detailed"],
-                  ["winloss", "Win vs Loss Days"],
-                  ["drawdown", "Drawdown"],
-                  ["compare", "Compare"],
-                  ["tags", "Tag Breakdown"],
-                  ["advanced", "Advanced"],
-                ] as Array<[MainTab, string]>
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  onClick={() => setTab(key)}
-                  className={cls(
-                    "py-3 text-[13px] font-semibold border-b-2 -mb-px",
-                    tab === key ? "" : "border-transparent",
-                  )}
-                  style={{
-                    color: tab === key ? UI.accent : UI.text,
-                    borderColor: tab === key ? UI.accent : "transparent",
-                    opacity: key === "overview" || key === "detailed" ? 1 : 0.85,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* Main Tabs */}
+      <div className="mt-6 border-b border-white/10">
+        <div className="flex items-center gap-8">
+          {mainTabs.map((t) => (
+            <button
+              key={t.value}
+              onClick={() => setMainTab(t.value)}
+              className={`py-3 text-[13px] font-medium transition-colors ${
+                mainTab === t.value ? "text-white" : "text-white/70 hover:text-white"
+              }`}
+              style={mainTab === t.value ? { borderBottom: `2px solid ${ACCENT}`, marginBottom: "-1px" } : undefined}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-          {/* P&L control row */}
-          <div className="mt-4 flex items-center justify-between">
-            <div className="flex items-center gap-8">
-              <TopSelect
-                label="P&L Type"
-                value={plType}
-                onChange={setPlType}
-                width={120}
-                options={[
-                  { value: "gross", label: "Gross" },
-                  { value: "net", label: "Net" },
-                ]}
-              />
-              <TopSelect
-                label="View mode"
-                value={viewMode}
-                onChange={setViewMode}
-                width={120}
-                options={[
-                  { value: "value", label: "$ Value" },
-                  { value: "risk", label: "Risk" },
-                  { value: "ticks", label: "Ticks" },
-                ]}
-              />
-              <TopSelect
-                label="Report type"
-                value={reportType}
-                onChange={setReportType}
-                width={170}
-                options={[
-                  { value: "aggregate", label: "Aggregate P&L" },
-                  { value: "perTradeAvg", label: "Per-trade average" },
-                ]}
-              />
-            </div>
-          </div>
+      {/* Secondary controls row (Detailed-like) */}
+      <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+        <div className="flex flex-wrap gap-6">
+          <SelectLike label="P&L Type" value="Gross" width={140} />
+          <SelectLike label="View mode" value="$ Value" width={140} />
+          <SelectLike label="Report type" value="Aggregate P&L" width={180} />
+        </div>
 
-          {/* Sub-report toggle row */}
-          {/* Sub-tabs like reference */}
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="flex items-center rounded-md border overflow-hidden" style={{ borderColor: UI.border, background: "#1a2232" }}>
-              {(
-                [
-                  ["recent", "Recent"],
-                  ["yearMonthDay", "Year/Month/Day"],
-                  ["calendar", "Calendar"],
-                ] as Array<[SubMode, string]>
-              ).map(([k, label]) => (
-                <button
-                  key={k}
-                  onClick={() => setSubMode(k)}
-                  className="h-9 px-4 text-[13px] font-medium"
-                  style={{
-                    background: subMode === k ? "#2a3344" : "transparent",
-                    color: UI.text,
-                    opacity: subMode === k ? 1 : 0.85,
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        <PillTabs
+          value={range}
+          onChange={setRange}
+          items={[
+            { value: "30", label: "30 Days" },
+            { value: "60", label: "60 Days" },
+            { value: "90", label: "90 Days" },
+          ]}
+        />
+      </div>
 
-            {/* 30/60/90 pill group on the right (matches reference placement) */}
-            <div className="flex items-center rounded-md border overflow-hidden" style={{ borderColor: UI.border, background: "#1a2232" }}>
-              {[30, 60, 90].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => setDaysRange(n as 30 | 60 | 90)}
-                  className="h-9 px-4 text-[13px] font-medium"
-                  style={{
-                    background: daysRange === n ? "#2a3344" : "transparent",
-                    color: UI.text,
-                    opacity: daysRange === n ? 1 : 0.85,
-                  }}
-                >
-                  {n} Days
-                </button>
-              ))}
-            </div>
+      {/* Time Tabs */}
+      <div className="mt-4">
+        <PillTabs
+          value={timeTab}
+          onChange={setTimeTab}
+          items={[
+            { value: "recent", label: "Recent" },
+            { value: "ymd", label: "Year/Month/Day" },
+            { value: "calendar", label: "Calendar" },
+          ]}
+        />
+      </div>
 
-          </div>
+      {/* Content */}
+      <div className="mt-6 space-y-6">
+        {mainTab === "detailed" ? (
+          <>
+            <StatsTable />
 
-          {/* Content */}
-          {tab === "detailed" ? (
-            <div className="mt-6">
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                {detailedNav.map((it) => (
+            <div className="flex justify-center">
+              <div className="inline-flex rounded-lg bg-white/5 border border-white/10 p-1">
+                {detailedGroups.map((g) => (
                   <button
-                    key={it.key}
-                    onClick={() => setDetailedSub(it.key)}
-                    className="h-9 px-3 rounded-md border text-[13px] font-medium"
-                    style={{
-                      background: detailedSub === it.key ? "#2a3344" : "#1a2232",
-                      borderColor: UI.border,
-                      color: UI.text,
-                      opacity: detailedSub === it.key ? 1 : 0.9,
-                    }}
+                    key={g.value}
+                    onClick={() => setDetailedGroup(g.value)}
+                    className={`px-4 py-2 text-[13px] rounded-md transition-colors ${
+                      detailedGroup === g.value ? "bg-white/10 text-white" : "text-white/60 hover:text-white"
+                    }`}
                   >
-                    {it.label}
+                    {g.label}
                   </button>
                 ))}
               </div>
-              {renderDetailed()}
             </div>
-          ) : tab === "overview" ? (
-            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
-              <ReportCard title={`GROSS DAILY P&L (${daysRange} Days)`}>
-                <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                      <CartesianGrid stroke={UI.border} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
-                      <Tooltip
-                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                        formatter={(v: any) => formatCurrency(Number(v))}
-                        labelStyle={{ color: UI.muted }}
-                      />
-                      <Bar dataKey="pnl" fill={UI.accent} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWrap>
-              </ReportCard>
-              <ReportCard title={`GROSS CUMULATIVE P&L (${daysRange} Days)`}>
-                <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                      <CartesianGrid stroke={UI.border} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
-                      <Tooltip
-                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                        formatter={(v: any) => formatCurrency(Number(v))}
-                        labelStyle={{ color: UI.muted }}
-                      />
-                      <Line type="monotone" dataKey="cumulative" stroke={UI.accent} strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartWrap>
-              </ReportCard>
-              <ReportCard title={`DAILY VOLUME (${daysRange} Days)`}>
-                <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                      <CartesianGrid stroke={UI.border} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                      <Tooltip
-                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                        formatter={(v: any) => `${v} trades`}
-                        labelStyle={{ color: UI.muted }}
-                      />
-                      <Bar dataKey="trades" fill={UI.accent} radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </ChartWrap>
-              </ReportCard>
-              <ReportCard title={`WIN % (${daysRange} Days)`}>
-                <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                  <ResponsiveContainer width="100%" height={260}>
-                    <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                      <CartesianGrid stroke={UI.border} vertical={false} />
-                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} domain={[0, 100]} />
-                      <Tooltip
-                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                        formatter={(v: any) => `${Number(v).toFixed(1)}%`}
-                        labelStyle={{ color: UI.muted }}
-                      />
-                      <Line type="monotone" dataKey="winPct" stroke={UI.accent} strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </ChartWrap>
-              </ReportCard>
-            </div>
-          ) : (
-            <div className="mt-6 rounded-xl border" style={{ background: UI.panel, borderColor: UI.border }}>
-              <div className="px-4 py-6 text-[13px]" style={{ color: UI.muted }}>
-                This section is ready for wiring. (UI matches the reference; charts/tables come next.)
+
+            {/* Group Panels: placeholders that match structure */}
+            {detailedGroup === "liq" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="TRADE DISTRIBUTION BY ALL SHARES ADDING LIQUIDITY" />
+                <Card title="PERFORMANCE BY ALL SHARES ADDING LIQUIDITY" />
               </div>
+            ) : detailedGroup === "dt" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="P&L BY DAY" subtitle={`Last ${range} Days`} />
+                <Card title="WIN % BY DAY" subtitle={`Last ${range} Days`} />
+                <Card title="TRADES BY DAY" subtitle={`Last ${range} Days`} />
+                <Card title="AVG P&L BY DAY" subtitle={`Last ${range} Days`} />
+              </div>
+            ) : detailedGroup === "ipv" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="P&L BY PRICE" subtitle={`Last ${range} Days`} />
+                <Card title="WIN % BY PRICE" subtitle={`Last ${range} Days`} />
+                <Card title="P&L BY VOLUME" subtitle={`Last ${range} Days`} />
+                <Card title="TRADES BY VOLUME" subtitle={`Last ${range} Days`} />
+              </div>
+            ) : detailedGroup === "ins" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="P&L BY INSTRUMENT" subtitle={`Last ${range} Days`} />
+                <Card title="WIN % BY INSTRUMENT" subtitle={`Last ${range} Days`} />
+              </div>
+            ) : detailedGroup === "mkt" ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="P&L BY MARKET BEHAVIOR" subtitle={`Last ${range} Days`} />
+                <Card title="TRADES BY MARKET BEHAVIOR" subtitle={`Last ${range} Days`} />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card title="WIN DISTRIBUTION" subtitle={`Last ${range} Days`} />
+                <Card title="LOSS DISTRIBUTION" subtitle={`Last ${range} Days`} />
+                <Card title="EXPECTATION" subtitle={`Last ${range} Days`} />
+                <Card title="RISK / REWARD" subtitle={`Last ${range} Days`} />
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-6 text-white/70 text-[13px]">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <span>UI scaffold ready for: {mainTab}</span>
             </div>
-          )}
+            <div className="mt-2 text-white/50">
+              Connect your backend metrics + charts to fill this section.
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
 
-function ReportCard({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-xl border overflow-hidden" style={{ background: UI.panel, borderColor: UI.border }}>
-      <div className="flex items-center justify-between px-4 py-3">
-        <div className="text-[13px] font-semibold tracking-wide" style={{ color: UI.text }}>{title}</div>
-        <div className="w-6 h-6 rounded-full border flex items-center justify-center" style={{ borderColor: UI.border, color: UI.muted }}>
-          i
-        </div>
+      {/* Help bubble */}
+      <div className="fixed bottom-6 right-6">
+        <button
+          className="h-12 px-5 rounded-full text-[#06130b] font-semibold flex items-center gap-2 shadow-lg"
+          style={{ backgroundColor: ACCENT }}
+        >
+          Help
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-black/15">
+            ?
+          </span>
+        </button>
       </div>
-      <div className="px-3 pb-3">{children}</div>
-    </div>
-  );
-}
-
-function ChartWrap({ loading, empty, children }: { loading: boolean; empty: boolean; children: React.ReactNode }) {
-  if (loading) {
-    return (
-      <div className="h-[260px] rounded-lg border flex items-center justify-center" style={{ background: UI.panel2, borderColor: UI.border }}>
-        <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: UI.accent }} />
-      </div>
-    );
-  }
-  if (empty) {
-    return (
-      <div className="h-[260px] rounded-lg border flex items-center justify-center" style={{ background: UI.panel2, borderColor: UI.border }}>
-        <div className="text-[13px]" style={{ color: UI.muted }}>
-          No data for this range.
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className="h-[260px] rounded-lg border" style={{ background: UI.panel2, borderColor: UI.border }}>
-      {children}
     </div>
   );
 }

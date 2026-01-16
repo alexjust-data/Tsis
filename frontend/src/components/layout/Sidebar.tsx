@@ -41,9 +41,11 @@ export default function Sidebar() {
     <aside className="w-[260px] bg-[#14161d] flex flex-col h-full">
       {/* Logo */}
       <div className="h-[60px] flex items-center px-5 border-b border-[#2d3139]">
-        {/* Brand text only (no icon) to avoid confusion with third-party branding */}
-        <Link href="/dashboard" className="flex items-center">
-          <span className="text-white font-semibold text-[18px] tracking-tight">TSIS.ai</span>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded bg-[#00a449] flex items-center justify-center">
+            <span className="text-white font-bold text-sm">T</span>
+          </div>
+          <span className="text-white font-semibold text-lg">TSIS.ai</span>
         </Link>
       </div>
 
