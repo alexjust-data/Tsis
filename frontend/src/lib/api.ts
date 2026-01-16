@@ -454,9 +454,33 @@ export interface HourStats {
   win_rate: number;
 }
 
+export interface MonthStats {
+  month: number;
+  month_name: string;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
+export interface DurationStats {
+  range_label: string;
+  min_seconds: number;
+  max_seconds: number;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
 export interface DaysTimesData {
   by_day: DayStats[];
   by_hour: HourStats[];
+  by_month: MonthStats[];
+  by_duration: DurationStats[];
+  by_intraday_duration: DurationStats[];
 }
 
 export interface PriceRangeStats {

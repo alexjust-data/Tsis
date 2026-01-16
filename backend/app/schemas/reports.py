@@ -27,10 +27,36 @@ class HourStats(BaseModel):
     win_rate: float = 0.0
 
 
+class MonthStats(BaseModel):
+    """Stats for a single month (1-12)."""
+    month: int  # 1-12
+    month_name: str  # Jan, Feb, etc.
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
+class DurationStats(BaseModel):
+    """Stats for a duration bucket."""
+    range_label: str  # e.g., "0-1m", "1-5m", "5-15m"
+    min_seconds: int
+    max_seconds: int
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
 class DaysTimesResponse(BaseModel):
-    """Aggregated data by day of week and hour of day for charts."""
+    """Aggregated data by day of week, hour of day, month, and duration for charts."""
     by_day: List[DayStats] = []
     by_hour: List[HourStats] = []
+    by_month: List[MonthStats] = []
+    by_duration: List[DurationStats] = []
+    by_intraday_duration: List[DurationStats] = []
 
 
 class PriceRangeStats(BaseModel):

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuthStore } from "@/lib/auth";
-import { reportsApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
+import { reportsApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type MonthStats, type DurationStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
 import {
   CalendarDays,
   Check,
@@ -187,6 +187,128 @@ function HourlyChart({
                   />
                 </div>
                 <div className="text-[9px] text-white/50 whitespace-nowrap">{item.hour_label.replace(" ", "")}</div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MonthBarChart({
+  title,
+  subtitle,
+  data,
+  dataKey,
+  formatValue,
+  colorFn,
+  infoText,
+}: {
+  title: string;
+  subtitle?: string;
+  data: MonthStats[];
+  dataKey: "total_pnl" | "trades" | "win_rate";
+  formatValue?: (v: number) => string;
+  colorFn?: (v: number) => string;
+  infoText?: string;
+}) {
+  const values = data.map((d) => Number(d[dataKey]) || 0);
+  const maxVal = Math.max(...values.map(Math.abs), 1);
+  const defaultFormat = (v: number) => v.toFixed(0);
+  const format = formatValue || defaultFormat;
+  const defaultColor = (v: number) => (v >= 0 ? "#48d18a" : "#ef4444");
+  const getColor = colorFn || defaultColor;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+      <div className="flex items-start justify-between px-4 py-3 border-b border-white/10">
+        <div>
+          <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
+          {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
+        </div>
+        <InfoTooltip text={infoText || "Displays aggregated data grouped by month of year."} />
+      </div>
+      <div className="p-4 h-[220px] flex items-end gap-1 overflow-x-auto">
+        {data.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-white/40 text-[13px]">No data</div>
+        ) : (
+          data.map((item, idx) => {
+            const val = Number(item[dataKey]) || 0;
+            const heightPct = (Math.abs(val) / maxVal) * 100;
+            const color = getColor(val);
+
+            return (
+              <div key={idx} className="flex-1 min-w-[28px] flex flex-col items-center gap-1" title={`${item.month_name}: ${format(val)}`}>
+                <div className="text-[9px] text-white/70 whitespace-nowrap">{format(val)}</div>
+                <div className="w-full h-[140px] flex items-end justify-center">
+                  <div
+                    className="w-full max-w-[24px] rounded-t transition-all"
+                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
+                  />
+                </div>
+                <div className="text-[9px] text-white/50 whitespace-nowrap">{item.month_name}</div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DurationBarChart({
+  title,
+  subtitle,
+  data,
+  dataKey,
+  formatValue,
+  colorFn,
+  infoText,
+}: {
+  title: string;
+  subtitle?: string;
+  data: DurationStats[];
+  dataKey: "total_pnl" | "trades" | "win_rate";
+  formatValue?: (v: number) => string;
+  colorFn?: (v: number) => string;
+  infoText?: string;
+}) {
+  const values = data.map((d) => Number(d[dataKey]) || 0);
+  const maxVal = Math.max(...values.map(Math.abs), 1);
+  const defaultFormat = (v: number) => v.toFixed(0);
+  const format = formatValue || defaultFormat;
+  const defaultColor = (v: number) => (v >= 0 ? "#48d18a" : "#ef4444");
+  const getColor = colorFn || defaultColor;
+
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+      <div className="flex items-start justify-between px-4 py-3 border-b border-white/10">
+        <div>
+          <div className="text-[13px] font-semibold tracking-wide uppercase text-white/90">{title}</div>
+          {subtitle ? <div className="text-[12px] text-white/50 mt-0.5">{subtitle}</div> : null}
+        </div>
+        <InfoTooltip text={infoText || "Displays aggregated data grouped by trade duration."} />
+      </div>
+      <div className="p-4 h-[220px] flex items-end gap-1 overflow-x-auto">
+        {data.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center text-white/40 text-[13px]">No data</div>
+        ) : (
+          data.map((item, idx) => {
+            const val = Number(item[dataKey]) || 0;
+            const heightPct = (Math.abs(val) / maxVal) * 100;
+            const color = getColor(val);
+
+            return (
+              <div key={idx} className="flex-1 min-w-[36px] flex flex-col items-center gap-1" title={`${item.range_label}: ${format(val)}`}>
+                <div className="text-[9px] text-white/70 whitespace-nowrap">{format(val)}</div>
+                <div className="w-full h-[140px] flex items-end justify-center">
+                  <div
+                    className="w-full max-w-[28px] rounded-t transition-all"
+                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
+                  />
+                </div>
+                <div className="text-[8px] text-white/50 whitespace-nowrap">{item.range_label}</div>
               </div>
             );
           })
@@ -719,6 +841,15 @@ export default function ReportsPage() {
               </div>
             ) : detailedGroup === "dt" ? (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Day of Week */}
+                <DayBarChart
+                  title="TRADE DISTRIBUTION BY DAY OF WEEK"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_day || []}
+                  dataKey="trades"
+                  colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by entry day of week."
+                />
                 <DayBarChart
                   title="PERFORMANCE BY DAY OF WEEK"
                   subtitle={`Last ${range} Days`}
@@ -727,13 +858,14 @@ export default function ReportsPage() {
                   formatValue={(v) => `$${v.toFixed(0)}`}
                   infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry day of week."
                 />
-                <DayBarChart
-                  title="TRADE DISTRIBUTION BY DAY OF WEEK"
+                {/* Hour of Day */}
+                <HourlyChart
+                  title="TRADE DISTRIBUTION BY HOUR OF DAY"
                   subtitle={`Last ${range} Days`}
-                  data={daysTimes?.by_day || []}
+                  data={daysTimes?.by_hour || []}
                   dataKey="trades"
                   colorFn={() => "#3b82f6"}
-                  infoText="Displays the number of trades matching the current filter, grouped by entry day of week."
+                  infoText="Displays the number of trades matching the current filter, grouped by entry hour of day. Hours are specified in US Eastern time."
                 />
                 <HourlyChart
                   title="PERFORMANCE BY HOUR OF DAY"
@@ -743,13 +875,56 @@ export default function ReportsPage() {
                   formatValue={(v) => `$${v.toFixed(0)}`}
                   infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry hour of day. Hours are specified in US Eastern time."
                 />
-                <HourlyChart
-                  title="TRADE DISTRIBUTION BY HOUR OF DAY"
+                {/* Month of Year */}
+                <MonthBarChart
+                  title="TRADE DISTRIBUTION BY MONTH OF YEAR"
                   subtitle={`Last ${range} Days`}
-                  data={daysTimes?.by_hour || []}
+                  data={daysTimes?.by_month || []}
                   dataKey="trades"
                   colorFn={() => "#3b82f6"}
-                  infoText="Displays the number of trades matching the current filter, grouped by entry hour of day. Hours are specified in US Eastern time."
+                  infoText="Displays the number of trades matching the current filter, grouped by month of year."
+                />
+                <MonthBarChart
+                  title="PERFORMANCE BY MONTH OF YEAR"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_month || []}
+                  dataKey="total_pnl"
+                  formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by month of year."
+                />
+                {/* Duration */}
+                <DurationBarChart
+                  title="TRADE DISTRIBUTION BY DURATION"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_duration || []}
+                  dataKey="trades"
+                  colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by trade duration (time from entry to exit)."
+                />
+                <DurationBarChart
+                  title="PERFORMANCE BY DURATION"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_duration || []}
+                  dataKey="total_pnl"
+                  formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by trade duration (time from entry to exit)."
+                />
+                {/* Intraday Duration */}
+                <DurationBarChart
+                  title="TRADE DISTRIBUTION BY INTRADAY DURATION"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_intraday_duration || []}
+                  dataKey="trades"
+                  colorFn={() => "#3b82f6"}
+                  infoText="Displays the number of trades matching the current filter, grouped by intraday trade duration (for shorter duration ranges)."
+                />
+                <DurationBarChart
+                  title="PERFORMANCE BY INTRADAY DURATION"
+                  subtitle={`Last ${range} Days`}
+                  data={daysTimes?.by_intraday_duration || []}
+                  dataKey="total_pnl"
+                  formatValue={(v) => `$${v.toFixed(0)}`}
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by intraday trade duration (for shorter duration ranges)."
                 />
               </div>
             ) : detailedGroup === "ipv" ? (

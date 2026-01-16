@@ -11,7 +11,7 @@ from app.api.deps import DbSession, CurrentUser
 from app.models.trade import Trade, TradeSide
 from app.schemas.reports import (
     DetailedStatsResponse,
-    DaysTimesResponse, DayStats, HourStats,
+    DaysTimesResponse, DayStats, HourStats, MonthStats, DurationStats,
     PriceVolumeResponse, PriceRangeStats, VolumeRangeStats,
 )
 
@@ -170,6 +170,32 @@ async def detailed_stats(
 
 
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+# Duration ranges for "by duration" chart (longer trades, swing/multi-day)
+DURATION_RANGES = [
+    (0, 60, "0-1m"),
+    (60, 300, "1-5m"),
+    (300, 900, "5-15m"),
+    (900, 1800, "15-30m"),
+    (1800, 3600, "30m-1h"),
+    (3600, 14400, "1-4h"),
+    (14400, 86400, "4h-1d"),
+    (86400, float("inf"), "1d+"),
+]
+
+# Intraday duration ranges (shorter, for day trading)
+INTRADAY_DURATION_RANGES = [
+    (0, 30, "0-30s"),
+    (30, 60, "30s-1m"),
+    (60, 120, "1-2m"),
+    (120, 300, "2-5m"),
+    (300, 600, "5-10m"),
+    (600, 900, "10-15m"),
+    (900, 1800, "15-30m"),
+    (1800, 3600, "30m-1h"),
+    (3600, float("inf"), "1h+"),
+]
 
 
 def _hour_label(hour: int) -> str:
@@ -209,32 +235,74 @@ async def days_times_stats(
     trades = res.scalars().all()
 
     if not trades:
-        return DaysTimesResponse(by_day=[], by_hour=[])
+        return DaysTimesResponse(by_day=[], by_hour=[], by_month=[], by_duration=[], by_intraday_duration=[])
 
     # Aggregate by day of week (0=Monday, 6=Sunday)
     day_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(7)}
     # Aggregate by hour (0-23)
     hour_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(24)}
+    # Aggregate by month (1-12)
+    month_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(1, 13)}
+    # Aggregate by duration ranges
+    duration_data = {r[2]: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0, "min": r[0], "max": r[1]} for r in DURATION_RANGES}
+    intraday_duration_data = {r[2]: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0, "min": r[0], "max": r[1]} for r in INTRADAY_DURATION_RANGES}
 
     for t in trades:
+        pnl = float(t.pnl)
+        is_winner = pnl > 0
+        is_loser = pnl < 0
+
         # Day of week from trade date
         dow = t.date.weekday()  # 0=Monday
-        day_data[dow]["pnl"] += float(t.pnl)
+        day_data[dow]["pnl"] += pnl
         day_data[dow]["trades"] += 1
-        if t.pnl > 0:
+        if is_winner:
             day_data[dow]["winners"] += 1
-        elif t.pnl < 0:
+        elif is_loser:
             day_data[dow]["losers"] += 1
+
+        # Month from trade date
+        month = t.date.month  # 1-12
+        month_data[month]["pnl"] += pnl
+        month_data[month]["trades"] += 1
+        if is_winner:
+            month_data[month]["winners"] += 1
+        elif is_loser:
+            month_data[month]["losers"] += 1
 
         # Hour from entry_time
         if t.entry_time:
             hour = t.entry_time.hour
-            hour_data[hour]["pnl"] += float(t.pnl)
+            hour_data[hour]["pnl"] += pnl
             hour_data[hour]["trades"] += 1
-            if t.pnl > 0:
+            if is_winner:
                 hour_data[hour]["winners"] += 1
-            elif t.pnl < 0:
+            elif is_loser:
                 hour_data[hour]["losers"] += 1
+
+        # Duration
+        if t.duration_seconds is not None:
+            dur = float(t.duration_seconds)
+            # Find duration bucket
+            for min_d, max_d, label in DURATION_RANGES:
+                if min_d <= dur < max_d:
+                    duration_data[label]["pnl"] += pnl
+                    duration_data[label]["trades"] += 1
+                    if is_winner:
+                        duration_data[label]["winners"] += 1
+                    elif is_loser:
+                        duration_data[label]["losers"] += 1
+                    break
+            # Intraday duration bucket
+            for min_d, max_d, label in INTRADAY_DURATION_RANGES:
+                if min_d <= dur < max_d:
+                    intraday_duration_data[label]["pnl"] += pnl
+                    intraday_duration_data[label]["trades"] += 1
+                    if is_winner:
+                        intraday_duration_data[label]["winners"] += 1
+                    elif is_loser:
+                        intraday_duration_data[label]["losers"] += 1
+                    break
 
     # Build response
     by_day = []
@@ -266,7 +334,59 @@ async def days_times_stats(
                 win_rate=round(win_rate, 1),
             ))
 
-    return DaysTimesResponse(by_day=by_day, by_hour=by_hour)
+    by_month = []
+    for i in range(1, 13):
+        m = month_data[i]
+        win_rate = _safe_div(m["winners"], m["trades"]) * 100 if m["trades"] > 0 else 0.0
+        by_month.append(MonthStats(
+            month=i,
+            month_name=MONTH_NAMES[i - 1],
+            total_pnl=round(m["pnl"], 2),
+            trades=m["trades"],
+            winners=m["winners"],
+            losers=m["losers"],
+            win_rate=round(win_rate, 1),
+        ))
+
+    by_duration = []
+    for min_d, max_d, label in DURATION_RANGES:
+        d = duration_data[label]
+        if d["trades"] > 0:
+            win_rate = _safe_div(d["winners"], d["trades"]) * 100
+            by_duration.append(DurationStats(
+                range_label=label,
+                min_seconds=int(min_d),
+                max_seconds=int(max_d) if max_d != float("inf") else 999999999,
+                total_pnl=round(d["pnl"], 2),
+                trades=d["trades"],
+                winners=d["winners"],
+                losers=d["losers"],
+                win_rate=round(win_rate, 1),
+            ))
+
+    by_intraday_duration = []
+    for min_d, max_d, label in INTRADAY_DURATION_RANGES:
+        d = intraday_duration_data[label]
+        if d["trades"] > 0:
+            win_rate = _safe_div(d["winners"], d["trades"]) * 100
+            by_intraday_duration.append(DurationStats(
+                range_label=label,
+                min_seconds=int(min_d),
+                max_seconds=int(max_d) if max_d != float("inf") else 999999999,
+                total_pnl=round(d["pnl"], 2),
+                trades=d["trades"],
+                winners=d["winners"],
+                losers=d["losers"],
+                win_rate=round(win_rate, 1),
+            ))
+
+    return DaysTimesResponse(
+        by_day=by_day,
+        by_hour=by_hour,
+        by_month=by_month,
+        by_duration=by_duration,
+        by_intraday_duration=by_intraday_duration,
+    )
 
 
 # Price ranges for grouping
