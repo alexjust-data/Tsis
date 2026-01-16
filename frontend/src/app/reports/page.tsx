@@ -78,16 +78,16 @@ function DayBarChart({
           data.map((item, idx) => {
             const val = item[dataKey] || 0;
             const label = item.day_name;
-            const height = (Math.abs(val) / maxVal) * 100;
+            const heightPct = (Math.abs(val) / maxVal) * 100;
             const color = getColor(val);
 
             return (
               <div key={idx} className="flex-1 flex flex-col items-center gap-1" title={`${label}: ${format(val)}`}>
                 <div className="text-[11px] text-white/70">{format(val)}</div>
-                <div className="w-full flex-1 flex items-end justify-center">
+                <div className="w-full h-[140px] flex items-end justify-center">
                   <div
                     className="w-full max-w-[40px] rounded-t transition-all"
-                    style={{ height: `${Math.max(height, 4)}%`, backgroundColor: color }}
+                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
                   />
                 </div>
                 <div className="text-[10px] text-white/50 truncate max-w-full">{label.slice(0, 3)}</div>
@@ -139,16 +139,16 @@ function HourlyChart({
         ) : (
           data.map((item, idx) => {
             const val = Number(item[dataKey]) || 0;
-            const height = (Math.abs(val) / maxVal) * 100;
+            const heightPct = (Math.abs(val) / maxVal) * 100;
             const color = getColor(val);
 
             return (
               <div key={idx} className="flex-1 min-w-[24px] flex flex-col items-center gap-1" title={`${item.hour_label}: ${format(val)}`}>
                 <div className="text-[9px] text-white/70 whitespace-nowrap">{format(val)}</div>
-                <div className="w-full flex-1 flex items-end justify-center">
+                <div className="w-full h-[140px] flex items-end justify-center">
                   <div
                     className="w-full max-w-[20px] rounded-t transition-all"
-                    style={{ height: `${Math.max(height, 4)}%`, backgroundColor: color }}
+                    style={{ height: `${Math.max(heightPct, 4)}%`, backgroundColor: color }}
                   />
                 </div>
                 <div className="text-[9px] text-white/50 whitespace-nowrap">{item.hour_label.replace(" ", "")}</div>
