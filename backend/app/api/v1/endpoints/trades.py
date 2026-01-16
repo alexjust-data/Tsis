@@ -302,6 +302,15 @@ async def import_trades(
                     if trade_dict.get("exit_time") and pd.notna(trade_dict["exit_time"]):
                         exit_time = pd.to_datetime(str(trade_dict["exit_time"])).time()
 
+                    # Calculate duration_seconds from entry and exit times
+                    duration_seconds = None
+                    if entry_time and exit_time:
+                        entry_dt = datetime.combine(trade_dict["date"], entry_time)
+                        exit_dt = datetime.combine(trade_dict["date"], exit_time)
+                        duration_seconds = int((exit_dt - entry_dt).total_seconds())
+                        if duration_seconds < 0:
+                            duration_seconds = None  # Handle overnight trades
+
                     trade = Trade(
                         user_id=current_user.id,
                         date=trade_dict["date"],
@@ -309,6 +318,7 @@ async def import_trades(
                         side=TradeSide.SHORT if trade_dict["side"] == "short" else TradeSide.LONG,
                         entry_time=entry_time,
                         exit_time=exit_time,
+                        duration_seconds=duration_seconds,
                         entry_price=trade_dict["entry_price"],
                         exit_price=trade_dict["exit_price"],
                         shares=trade_dict["shares"],
@@ -346,6 +356,15 @@ async def import_trades(
                     if "exit_time" in row and pd.notna(row["exit_time"]):
                         exit_time = pd.to_datetime(str(row["exit_time"])).time()
 
+                    # Calculate duration_seconds from entry and exit times
+                    duration_seconds = None
+                    if entry_time and exit_time:
+                        entry_dt = datetime.combine(trade_date, entry_time)
+                        exit_dt = datetime.combine(trade_date, exit_time)
+                        duration_seconds = int((exit_dt - entry_dt).total_seconds())
+                        if duration_seconds < 0:
+                            duration_seconds = None  # Handle overnight trades
+
                     # Get numeric values
                     entry_price = float(row.get("entry_price", 0))
                     exit_price = float(row.get("exit_price", 0))
@@ -364,6 +383,7 @@ async def import_trades(
                         side=side,
                         entry_time=entry_time,
                         exit_time=exit_time,
+                        duration_seconds=duration_seconds,
                         entry_price=entry_price,
                         exit_price=exit_price,
                         shares=shares,
@@ -395,3 +415,29 @@ async def delete_all_trades(db: DbSession, current_user: CurrentUser):
     """Delete all trades for current user"""
     await db.execute(delete(Trade).where(Trade.user_id == current_user.id))
     await db.commit()
+
+
+@router.post("/recalculate-durations", response_model=dict)
+async def recalculate_durations(db: DbSession, current_user: CurrentUser):
+    """Recalculate duration_seconds for all trades that have entry_time and exit_time."""
+    result = await db.execute(
+        select(Trade).where(Trade.user_id == current_user.id)
+    )
+    trades = result.scalars().all()
+
+    updated_count = 0
+    for trade in trades:
+        if trade.entry_time and trade.exit_time and trade.duration_seconds is None:
+            entry_dt = datetime.combine(trade.date, trade.entry_time)
+            exit_dt = datetime.combine(trade.date, trade.exit_time)
+            duration = int((exit_dt - entry_dt).total_seconds())
+            if duration >= 0:
+                trade.duration_seconds = duration
+                updated_count += 1
+
+    await db.commit()
+
+    return {
+        "message": f"Successfully recalculated durations for {updated_count} trades",
+        "trades_updated": updated_count
+    }
