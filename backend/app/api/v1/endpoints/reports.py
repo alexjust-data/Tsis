@@ -9,7 +9,7 @@ from sqlalchemy import select
 
 from app.api.deps import DbSession, CurrentUser
 from app.models.trade import Trade, TradeSide
-from app.schemas.reports import DetailedStatsResponse
+from app.schemas.reports import DetailedStatsResponse, DaysTimesResponse, DayStats, HourStats
 
 router = APIRouter()
 
@@ -163,3 +163,103 @@ async def detailed_stats(
         average_position_mae=None,
         average_position_mfe=None,
     )
+
+
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def _hour_label(hour: int) -> str:
+    """Convert 24h hour to 12h label."""
+    if hour == 0:
+        return "12 AM"
+    elif hour < 12:
+        return f"{hour} AM"
+    elif hour == 12:
+        return "12 PM"
+    else:
+        return f"{hour - 12} PM"
+
+
+@router.get("/detailed/days-times", response_model=DaysTimesResponse)
+async def days_times_stats(
+    db: DbSession,
+    current_user: CurrentUser,
+    ticker: Optional[str] = None,
+    side: Optional[TradeSide] = None,
+    start_date: Optional[date] = None,
+    end_date: Optional[date] = None,
+):
+    """Aggregated stats by day of week and hour of day for charts."""
+
+    q = select(Trade).where(Trade.user_id == current_user.id)
+    if ticker:
+        q = q.where(Trade.ticker == ticker.upper())
+    if side:
+        q = q.where(Trade.side == side)
+    if start_date:
+        q = q.where(Trade.date >= start_date)
+    if end_date:
+        q = q.where(Trade.date <= end_date)
+
+    res = await db.execute(q)
+    trades = res.scalars().all()
+
+    if not trades:
+        return DaysTimesResponse(by_day=[], by_hour=[])
+
+    # Aggregate by day of week (0=Monday, 6=Sunday)
+    day_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(7)}
+    # Aggregate by hour (0-23)
+    hour_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(24)}
+
+    for t in trades:
+        # Day of week from trade date
+        dow = t.date.weekday()  # 0=Monday
+        day_data[dow]["pnl"] += float(t.pnl)
+        day_data[dow]["trades"] += 1
+        if t.pnl > 0:
+            day_data[dow]["winners"] += 1
+        elif t.pnl < 0:
+            day_data[dow]["losers"] += 1
+
+        # Hour from entry_time
+        if t.entry_time:
+            hour = t.entry_time.hour
+            hour_data[hour]["pnl"] += float(t.pnl)
+            hour_data[hour]["trades"] += 1
+            if t.pnl > 0:
+                hour_data[hour]["winners"] += 1
+            elif t.pnl < 0:
+                hour_data[hour]["losers"] += 1
+
+    # Build response
+    by_day = []
+    for i in range(7):
+        d = day_data[i]
+        win_rate = _safe_div(d["winners"], d["trades"]) * 100 if d["trades"] > 0 else 0.0
+        by_day.append(DayStats(
+            day_index=i,
+            day_name=DAY_NAMES[i],
+            total_pnl=round(d["pnl"], 2),
+            trades=d["trades"],
+            winners=d["winners"],
+            losers=d["losers"],
+            win_rate=round(win_rate, 1),
+        ))
+
+    by_hour = []
+    for i in range(24):
+        h = hour_data[i]
+        if h["trades"] > 0:  # Only include hours with trades
+            win_rate = _safe_div(h["winners"], h["trades"]) * 100
+            by_hour.append(HourStats(
+                hour=i,
+                hour_label=_hour_label(i),
+                total_pnl=round(h["pnl"], 2),
+                trades=h["trades"],
+                winners=h["winners"],
+                losers=h["losers"],
+                win_rate=round(win_rate, 1),
+            ))
+
+    return DaysTimesResponse(by_day=by_day, by_hour=by_hour)

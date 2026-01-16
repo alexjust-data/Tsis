@@ -1,8 +1,36 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
+
+
+class DayStats(BaseModel):
+    """Stats for a single day of the week (0=Monday, 6=Sunday)."""
+    day_index: int  # 0-6
+    day_name: str  # Monday, Tuesday, etc.
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
+class HourStats(BaseModel):
+    """Stats for a single hour of the day (0-23)."""
+    hour: int  # 0-23
+    hour_label: str  # "9 AM", "10 AM", etc.
+    total_pnl: float = 0.0
+    trades: int = 0
+    winners: int = 0
+    losers: int = 0
+    win_rate: float = 0.0
+
+
+class DaysTimesResponse(BaseModel):
+    """Aggregated data by day of week and hour of day for charts."""
+    by_day: List[DayStats] = []
+    by_hour: List[HourStats] = []
 
 
 class DetailedStatsResponse(BaseModel):

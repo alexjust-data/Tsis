@@ -244,6 +244,20 @@ export const reportsApi = {
     const query = searchParams.toString();
     return fetchApi<DetailedStats>(`/reports/detailed/stats${query ? `?${query}` : ""}`, { token });
   },
+
+  getDaysTimes: (
+    token: string,
+    params?: { ticker?: string; side?: "long" | "short"; start_date?: string; end_date?: string }
+  ) => {
+    const searchParams = new URLSearchParams();
+    if (params?.ticker) searchParams.append("ticker", params.ticker);
+    if (params?.side) searchParams.append("side", params.side);
+    if (params?.start_date) searchParams.append("start_date", params.start_date);
+    if (params?.end_date) searchParams.append("end_date", params.end_date);
+
+    const query = searchParams.toString();
+    return fetchApi<DaysTimesData>(`/reports/detailed/days-times${query ? `?${query}` : ""}`, { token });
+  },
 };
 
 // Types
@@ -405,7 +419,32 @@ export interface JournalEntry {
   losers: number;
 }
 
-// Reports Types - matches backend DetailedStatsResponse
+// Reports Types - matches backend schemas
+export interface DayStats {
+  day_index: number;
+  day_name: string;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
+export interface HourStats {
+  hour: number;
+  hour_label: string;
+  total_pnl: number;
+  trades: number;
+  winners: number;
+  losers: number;
+  win_rate: number;
+}
+
+export interface DaysTimesData {
+  by_day: DayStats[];
+  by_hour: HourStats[];
+}
+
 export interface DetailedStats {
   total_gain_loss: number;
   largest_gain: number | null;
