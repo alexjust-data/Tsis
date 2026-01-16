@@ -159,6 +159,57 @@ export const dashboardApi = {
     fetchApi<TimingStats[]>("/dashboard/timing", { token }),
 };
 
+// Tags API
+export const tagsApi = {
+  getAll: (token: string) =>
+    fetchApi<Tag[]>("/tags", { token }),
+
+  create: (token: string, data: TagCreate) =>
+    fetchApi<Tag>("/tags", {
+      method: "POST",
+      body: JSON.stringify(data),
+      token,
+    }),
+
+  delete: (token: string, id: number) =>
+    fetchApi<void>(`/tags/${id}`, { method: "DELETE", token }),
+};
+
+// Journal API (uses trades grouped by date)
+export const journalApi = {
+  getEntries: async (token: string, params?: { start_date?: string; end_date?: string }) => {
+    const trades = await tradesApi.getAll(token, params);
+
+    // Group trades by date
+    const entriesMap = new Map<string, JournalEntry>();
+
+    trades.forEach(trade => {
+      const dateKey = trade.date;
+      if (!entriesMap.has(dateKey)) {
+        entriesMap.set(dateKey, {
+          date: dateKey,
+          trades: [],
+          total_pnl: 0,
+          total_trades: 0,
+          winners: 0,
+          losers: 0,
+        });
+      }
+      const entry = entriesMap.get(dateKey)!;
+      entry.trades.push(trade);
+      entry.total_pnl += trade.pnl;
+      entry.total_trades += 1;
+      if (trade.pnl > 0) entry.winners += 1;
+      else entry.losers += 1;
+    });
+
+    // Sort by date descending
+    return Array.from(entriesMap.values()).sort((a, b) =>
+      new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  },
+};
+
 // Risk Settings API
 export const riskApi = {
   get: (token: string) =>
@@ -313,6 +364,28 @@ export interface PositionCalculation {
     max_position: number;
     max_order: number;
   };
+}
+
+export interface Tag {
+  id: number;
+  user_id: number;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface TagCreate {
+  name: string;
+  color?: string;
+}
+
+export interface JournalEntry {
+  date: string;
+  trades: Trade[];
+  total_pnl: number;
+  total_trades: number;
+  winners: number;
+  losers: number;
 }
 
 export { ApiError };
