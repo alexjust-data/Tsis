@@ -172,42 +172,30 @@ async def detailed_stats(
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
-# Duration ranges for "by duration" chart (longer trades, swing/multi-day)
+# Duration ranges - Intraday vs Multiday (like Tradervue)
 DURATION_RANGES = [
-    (0, 60, "0-1m"),
-    (60, 300, "1-5m"),
-    (300, 900, "5-15m"),
-    (900, 1800, "15-30m"),
-    (1800, 3600, "30m-1h"),
-    (3600, 14400, "1-4h"),
-    (14400, 86400, "4h-1d"),
-    (86400, float("inf"), "1d+"),
+    (0, 86400, "Intraday"),      # < 1 day (24 hours in seconds)
+    (86400, float("inf"), "Multiday"),  # >= 1 day
 ]
 
-# Intraday duration ranges (shorter, for day trading)
+# Intraday duration ranges (like Tradervue)
 INTRADAY_DURATION_RANGES = [
-    (0, 30, "0-30s"),
-    (30, 60, "30s-1m"),
-    (60, 120, "1-2m"),
-    (120, 300, "2-5m"),
-    (300, 600, "5-10m"),
-    (600, 900, "10-15m"),
-    (900, 1800, "15-30m"),
-    (1800, 3600, "30m-1h"),
-    (3600, float("inf"), "1h+"),
+    (0, 60, "< 1:00"),           # < 1 minute
+    (60, 120, "1:00 - 1:59"),    # 1-2 minutes
+    (120, 300, "2:00 - 4:59"),   # 2-5 minutes
+    (300, 600, "5:00 - 9:59"),   # 5-10 minutes
+    (600, 1200, "10:00 - 19:59"),  # 10-20 minutes
+    (1200, 2400, "20:00 - 39:59"),  # 20-40 minutes
+    (2400, 3600, "40:00 - 59:59"),  # 40-60 minutes
+    (3600, 7200, "1:00:00 - 1:59:59"),  # 1-2 hours
+    (7200, 14400, "2:00:00 - 3:59:59"),  # 2-4 hours
+    (14400, float("inf"), "4:00:00 >"),  # 4+ hours
 ]
 
 
 def _hour_label(hour: int) -> str:
-    """Convert 24h hour to 12h label."""
-    if hour == 0:
-        return "12 AM"
-    elif hour < 12:
-        return f"{hour} AM"
-    elif hour == 12:
-        return "12 PM"
-    else:
-        return f"{hour - 12} PM"
+    """Convert 24h hour to label format like Tradervue (e.g., '6:00', '14:00')."""
+    return f"{hour}:00"
 
 
 @router.get("/detailed/days-times", response_model=DaysTimesResponse)
