@@ -25,7 +25,7 @@ const UI = {
   border: "#273041",
   text: "#e6edf6",
   muted: "#7c889e",
-  accent: "#00a449", // keep your brand green
+  accent: "#3ecf9a", // pastel accent (brand-tunable)
 };
 
 function cls(...parts: Array<string | false | undefined | null>) {
@@ -85,6 +85,7 @@ function TopInput({ label, placeholder, value, onChange, width = 150 }: { label:
 
 type MainTab = "overview" | "detailed" | "winloss" | "drawdown" | "compare" | "tags" | "advanced";
 type SubMode = "recent" | "yearMonthDay" | "calendar";
+type DetailedSub = "days" | "times" | "price" | "volume" | "instrument" | "market" | "win" | "loss" | "expectation" | "liquidity";
 
 export default function ReportsPage() {
   const { token } = useAuthStore();
@@ -97,7 +98,9 @@ export default function ReportsPage() {
   const [tab, setTab] = useState<MainTab>("overview");
   const [subMode, setSubMode] = useState<SubMode>("recent");
 
-  // “Screenshot-like” filters
+  const [detailedSub, setDetailedSub] = useState<DetailedSub>("days");
+
+  // "Screenshot-like" filters
   const [symbol, setSymbol] = useState("");
   const [tag, setTag] = useState("all");
   const [side, setSide] = useState("all");
@@ -105,7 +108,7 @@ export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("");
   const [daysRange, setDaysRange] = useState<30 | 60 | 90>(30);
 
-  // “P&L type / view mode / report type” row
+  // "P&L type / view mode / report type" row
   const [plType, setPlType] = useState("gross");
   const [viewMode, setViewMode] = useState("value");
   const [reportType, setReportType] = useState("aggregate");
@@ -177,6 +180,136 @@ export default function ReportsPage() {
     setDuration("all");
     setDateRange("");
     setDaysRange(30);
+  };
+
+  const detailedNav = [
+    { key: "days", label: "Days" },
+    { key: "times", label: "Times" },
+    { key: "price", label: "Price" },
+    { key: "volume", label: "Volume" },
+    { key: "instrument", label: "Instrument" },
+    { key: "market", label: "Market Behavior" },
+    { key: "win", label: "Win" },
+    { key: "loss", label: "Loss" },
+    { key: "expectation", label: "Expectation" },
+    { key: "liquidity", label: "Liquidity" },
+  ] as const;
+
+  const renderDetailed = () => {
+    // UI-only scaffolding matching the reference sections.
+    // You can wire charts/tables to real data later.
+    const commonCard = (title: string, subtitle?: string) => (
+      <div
+        className="rounded-xl border overflow-hidden"
+        style={{ background: UI.panel, borderColor: UI.border }}
+      >
+        <div className="px-4 py-3 flex items-center justify-between">
+          <div>
+            <div className="text-[13px] font-semibold tracking-wide" style={{ color: UI.text }}>{title}</div>
+            {subtitle ? (
+              <div className="text-[12px] mt-0.5" style={{ color: UI.muted }}>{subtitle}</div>
+            ) : null}
+          </div>
+          <div className="text-[12px]" style={{ color: UI.muted }}>i</div>
+        </div>
+        <div className="h-[220px] border-t" style={{ borderColor: UI.border, background: UI.panel2 }} />
+      </div>
+    );
+
+    switch (detailedSub) {
+      case "days":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("P&L by Day", "(Last 30 Days)")}
+            {commonCard("Win % by Day", "(Last 30 Days)")}
+            {commonCard("Trades by Day", "(Last 30 Days)")}
+            {commonCard("Avg P&L by Day", "(Last 30 Days)")}
+          </div>
+        );
+      case "times":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("P&L by Time", "(Session)")}
+            {commonCard("Win % by Time", "(Session)")}
+            {commonCard("Trades by Time", "(Session)")}
+            {commonCard("Avg P&L by Time", "(Session)")}
+          </div>
+        );
+      case "price":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("P&L by Price")}
+            {commonCard("Win % by Price")}
+            {commonCard("Trades by Price")}
+            {commonCard("Avg P&L by Price")}
+          </div>
+        );
+      case "volume":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("P&L by Volume")}
+            {commonCard("Win % by Volume")}
+            {commonCard("Trades by Volume")}
+            {commonCard("Avg P&L by Volume")}
+          </div>
+        );
+      case "instrument":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("P&L by Instrument")}
+            {commonCard("Win % by Instrument")}
+            {commonCard("Trades by Instrument")}
+            {commonCard("Avg P&L by Instrument")}
+          </div>
+        );
+      case "market":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("Market Behavior", "Context metrics")}
+            {commonCard("Performance by Regime")}
+            {commonCard("Volatility Bucket")}
+            {commonCard("Trend / Range Bucket")}
+          </div>
+        );
+      case "win":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("Winning Trades")}
+            {commonCard("Winners Distribution")}
+            {commonCard("Avg Winner")}
+            {commonCard("Winner Duration")}
+          </div>
+        );
+      case "loss":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("Losing Trades")}
+            {commonCard("Losers Distribution")}
+            {commonCard("Avg Loser")}
+            {commonCard("Loser Duration")}
+          </div>
+        );
+      case "expectation":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("Expectation", "Edge decomposition")}
+            {commonCard("Payoff Ratio")}
+            {commonCard("Win Rate")}
+            {commonCard("Expectancy Over Time")}
+          </div>
+        );
+      case "liquidity":
+        return (
+          <div className="grid grid-cols-2 gap-6">
+            {commonCard("Liquidity", "Slippage / spread proxies")}
+            {commonCard("Fill Quality")}
+            {commonCard("Size vs Liquidity")}
+            {commonCard("Impact")}
+          </div>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
@@ -328,7 +461,8 @@ export default function ReportsPage() {
                 width={120}
                 options={[
                   { value: "value", label: "$ Value" },
-                  { value: "percent", label: "%" },
+                  { value: "risk", label: "Risk" },
+                  { value: "ticks", label: "Ticks" },
                 ]}
               />
               <TopSelect
@@ -338,7 +472,7 @@ export default function ReportsPage() {
                 width={170}
                 options={[
                   { value: "aggregate", label: "Aggregate P&L" },
-                  { value: "bySymbol", label: "By Symbol" },
+                  { value: "perTradeAvg", label: "Per-trade average" },
                 ]}
               />
             </div>
@@ -390,82 +524,108 @@ export default function ReportsPage() {
 
           </div>
 
-          {/* Cards */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <ReportCard title={`GROSS DAILY P&L (${daysRange} Days)`}>
-              <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                    <CartesianGrid stroke={UI.border} vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                    <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
-                    <Tooltip
-                      contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                      formatter={(v: any) => formatCurrency(Number(v))}
-                      labelStyle={{ color: UI.muted }}
-                    />
-                    <Bar dataKey="pnl" fill={UI.accent} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartWrap>
-            </ReportCard>
-
-            <ReportCard title={`GROSS CUMULATIVE P&L (${daysRange} Days)`}>
-              <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                    <CartesianGrid stroke={UI.border} vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                    <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
-                    <Tooltip
-                      contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                      formatter={(v: any) => formatCurrency(Number(v))}
-                      labelStyle={{ color: UI.muted }}
-                    />
-                    <Line type="monotone" dataKey="cumulative" stroke={UI.accent} strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartWrap>
-            </ReportCard>
-
-            <ReportCard title={`DAILY VOLUME (${daysRange} Days)`}>
-              <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                    <CartesianGrid stroke={UI.border} vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                    <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                    <Tooltip
-                      contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                      formatter={(v: any) => `${v} trades`}
-                      labelStyle={{ color: UI.muted }}
-                    />
-                    <Bar dataKey="trades" fill={UI.accent} radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartWrap>
-            </ReportCard>
-
-            <ReportCard title={`WIN % (${daysRange} Days)`}>
-              <ChartWrap loading={isLoading} empty={!seriesN.length}>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
-                    <CartesianGrid stroke={UI.border} vertical={false} />
-                    <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
-                    <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} domain={[0, 100]} />
-                    <Tooltip
-                      contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
-                      formatter={(v: any) => `${Number(v).toFixed(1)}%`}
-                      labelStyle={{ color: UI.muted }}
-                    />
-                    <Line type="monotone" dataKey="winPct" stroke={UI.accent} strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartWrap>
-            </ReportCard>
-          </div>
-        </div>
+          {/* Content */}
+          {tab === "detailed" ? (
+            <div className="mt-6">
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {detailedNav.map((it) => (
+                  <button
+                    key={it.key}
+                    onClick={() => setDetailedSub(it.key)}
+                    className="h-9 px-3 rounded-md border text-[13px] font-medium"
+                    style={{
+                      background: detailedSub === it.key ? "#2a3344" : "#1a2232",
+                      borderColor: UI.border,
+                      color: UI.text,
+                      opacity: detailedSub === it.key ? 1 : 0.9,
+                    }}
+                  >
+                    {it.label}
+                  </button>
+                ))}
+              </div>
+              {renderDetailed()}
+            </div>
+          ) : tab === "overview" ? (
+            <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <ReportCard title={`GROSS DAILY P&L (${daysRange} Days)`}>
+                <ChartWrap loading={isLoading} empty={!seriesN.length}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
+                      <CartesianGrid stroke={UI.border} vertical={false} />
+                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
+                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
+                      <Tooltip
+                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
+                        formatter={(v: any) => formatCurrency(Number(v))}
+                        labelStyle={{ color: UI.muted }}
+                      />
+                      <Bar dataKey="pnl" fill={UI.accent} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartWrap>
+              </ReportCard>
+              <ReportCard title={`GROSS CUMULATIVE P&L (${daysRange} Days)`}>
+                <ChartWrap loading={isLoading} empty={!seriesN.length}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
+                      <CartesianGrid stroke={UI.border} vertical={false} />
+                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
+                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} tickFormatter={(v) => (typeof v === "number" ? v.toFixed(0) : String(v))} />
+                      <Tooltip
+                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
+                        formatter={(v: any) => formatCurrency(Number(v))}
+                        labelStyle={{ color: UI.muted }}
+                      />
+                      <Line type="monotone" dataKey="cumulative" stroke={UI.accent} strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartWrap>
+              </ReportCard>
+              <ReportCard title={`DAILY VOLUME (${daysRange} Days)`}>
+                <ChartWrap loading={isLoading} empty={!seriesN.length}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
+                      <CartesianGrid stroke={UI.border} vertical={false} />
+                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
+                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
+                      <Tooltip
+                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
+                        formatter={(v: any) => `${v} trades`}
+                        labelStyle={{ color: UI.muted }}
+                      />
+                      <Bar dataKey="trades" fill={UI.accent} radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </ChartWrap>
+              </ReportCard>
+              <ReportCard title={`WIN % (${daysRange} Days)`}>
+                <ChartWrap loading={isLoading} empty={!seriesN.length}>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={seriesN} margin={{ left: 4, right: 16, top: 8, bottom: 8 }}>
+                      <CartesianGrid stroke={UI.border} vertical={false} />
+                      <XAxis dataKey="date" tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} />
+                      <YAxis tick={{ fill: UI.muted, fontSize: 11 }} axisLine={{ stroke: UI.border }} tickLine={false} domain={[0, 100]} />
+                      <Tooltip
+                        contentStyle={{ background: UI.panel, border: `1px solid ${UI.border}`, color: UI.text, fontSize: 12 }}
+                        formatter={(v: any) => `${Number(v).toFixed(1)}%`}
+                        labelStyle={{ color: UI.muted }}
+                      />
+                      <Line type="monotone" dataKey="winPct" stroke={UI.accent} strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartWrap>
+              </ReportCard>
+            </div>
+          ) : (
+            <div className="mt-6 rounded-xl border" style={{ background: UI.panel, borderColor: UI.border }}>
+              <div className="px-4 py-6 text-[13px]" style={{ color: UI.muted }}>
+                This section is ready for wiring. (UI matches the reference; charts/tables come next.)
+              </div>
+            </div>
+          )}
       </div>
+    </div>
   );
 }
 
