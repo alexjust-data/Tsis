@@ -193,9 +193,19 @@ INTRADAY_DURATION_RANGES = [
 ]
 
 
-def _hour_label(hour: int) -> str:
-    """Convert 24h hour to label format like Tradervue (e.g., '6:00', '14:00')."""
-    return f"{hour}:00"
+def _hour_label(hour: int, minute: int = 0) -> str:
+    """Convert 24h hour and minute to label format like Tradervue (e.g., '6:00', '14:30')."""
+    return f"{hour}:{minute:02d}"
+
+
+def _get_time_slot(hour: int, minute: int, timeframe: int) -> str:
+    """Get the time slot label for a given hour/minute and timeframe (in minutes)."""
+    if timeframe == 60:
+        return f"{hour}:00"
+    else:
+        # Round down to nearest timeframe interval
+        slot_minute = (minute // timeframe) * timeframe
+        return f"{hour}:{slot_minute:02d}"
 
 
 @router.get("/detailed/days-times", response_model=DaysTimesResponse)
@@ -206,8 +216,13 @@ async def days_times_stats(
     side: Optional[TradeSide] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    timeframe: int = 60,  # 60 = 1 hour, 30 = 30 min, 15 = 15 min
 ):
     """Aggregated stats by day of week and hour of day for charts."""
+
+    # Validate timeframe
+    if timeframe not in (15, 30, 60):
+        timeframe = 60
 
     q = select(Trade).where(Trade.user_id == current_user.id)
     if ticker:
@@ -227,8 +242,8 @@ async def days_times_stats(
 
     # Aggregate by day of week (0=Monday, 6=Sunday)
     day_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(7)}
-    # Aggregate by hour (0-23)
-    hour_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(24)}
+    # Aggregate by time slot (based on timeframe)
+    hour_data: dict[str, dict] = {}  # key is time slot label like "9:00", "9:15", etc.
     # Aggregate by month (1-12)
     month_data: dict[int, dict] = {i: {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0} for i in range(1, 13)}
     # Aggregate by duration ranges
@@ -258,15 +273,17 @@ async def days_times_stats(
         elif is_loser:
             month_data[month]["losers"] += 1
 
-        # Hour from entry_time
+        # Time slot from entry_time (based on timeframe)
         if t.entry_time:
-            hour = t.entry_time.hour
-            hour_data[hour]["pnl"] += pnl
-            hour_data[hour]["trades"] += 1
+            slot_label = _get_time_slot(t.entry_time.hour, t.entry_time.minute, timeframe)
+            if slot_label not in hour_data:
+                hour_data[slot_label] = {"pnl": 0.0, "trades": 0, "winners": 0, "losers": 0, "hour": t.entry_time.hour, "minute": (t.entry_time.minute // timeframe) * timeframe}
+            hour_data[slot_label]["pnl"] += pnl
+            hour_data[slot_label]["trades"] += 1
             if is_winner:
-                hour_data[hour]["winners"] += 1
+                hour_data[slot_label]["winners"] += 1
             elif is_loser:
-                hour_data[hour]["losers"] += 1
+                hour_data[slot_label]["losers"] += 1
 
         # Duration
         if t.duration_seconds is not None:
@@ -308,13 +325,14 @@ async def days_times_stats(
         ))
 
     by_hour = []
-    for i in range(24):
-        h = hour_data[i]
-        if h["trades"] > 0:  # Only include hours with trades
+    # Sort time slots by hour and minute
+    sorted_slots = sorted(hour_data.items(), key=lambda x: (x[1]["hour"], x[1]["minute"]))
+    for slot_label, h in sorted_slots:
+        if h["trades"] > 0:  # Only include slots with trades
             win_rate = _safe_div(h["winners"], h["trades"]) * 100
             by_hour.append(HourStats(
-                hour=i,
-                hour_label=_hour_label(i),
+                hour=h["hour"],
+                hour_label=slot_label,
                 total_pnl=round(h["pnl"], 2),
                 trades=h["trades"],
                 winners=h["winners"],

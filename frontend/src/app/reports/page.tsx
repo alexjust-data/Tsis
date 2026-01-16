@@ -555,6 +555,7 @@ export default function ReportsPage() {
   const [timeTab, setTimeTab] = useState<TimeTab>("recent");
   const [range, setRange] = useState<"30" | "60" | "90">("30");
   const [detailedGroup, setDetailedGroup] = useState<DetailedGroup>("dt");
+  const [timeframe, setTimeframe] = useState<60 | 30 | 15>(60); // 60=1hour, 30=30min, 15=15min
 
   // Data state
   const [stats, setStats] = useState<DetailedStats | null>(null);
@@ -565,12 +566,12 @@ export default function ReportsPage() {
   // Filter state
   const [symbol] = useState<string>("");
 
-  // Load data on mount and when range changes
+  // Load data on mount and when range or timeframe changes
   useEffect(() => {
     if (token) {
       loadData();
     }
-  }, [token, range]);
+  }, [token, range, timeframe]);
 
   const loadData = async () => {
     if (!token) return;
@@ -589,7 +590,7 @@ export default function ReportsPage() {
 
       const [statsData, daysTimesData, priceVolumeData] = await Promise.all([
         reportsApi.getDetailedStats(token, params),
-        reportsApi.getDaysTimes(token, params),
+        reportsApi.getDaysTimes(token, { ...params, timeframe }),
         reportsApi.getPriceVolume(token, params),
       ]);
       setStats(statsData);
@@ -785,23 +786,39 @@ export default function ReportsPage() {
                   isCurrency
                   infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry day of week."
                 />
+                {/* Timeframe dropdown */}
+                <div className="col-span-1 lg:col-span-2 flex items-center gap-3 mb-2">
+                  <span className="text-[12px] text-white/60 uppercase tracking-wide">Timeframe:</span>
+                  <div className="relative">
+                    <select
+                      value={timeframe}
+                      onChange={(e) => setTimeframe(Number(e.target.value) as 60 | 30 | 15)}
+                      className="appearance-none bg-[#1e2128] border border-white/20 rounded px-3 py-1.5 pr-8 text-[13px] text-white cursor-pointer hover:border-white/30 focus:outline-none focus:border-[#48d18a]"
+                    >
+                      <option value={60}>1 hour</option>
+                      <option value={30}>30 min</option>
+                      <option value={15}>15 min</option>
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 pointer-events-none" />
+                  </div>
+                </div>
                 {/* Hour of Day */}
                 <TradervueChart
-                  title="TRADE DISTRIBUTION BY HOUR OF DAY"
+                  title={`TRADE DISTRIBUTION BY TIME OF DAY${timeframe !== 60 ? ` (${timeframe}-MIN)` : ""}`}
                   data={daysTimes?.by_hour || []}
                   dataKey="trades"
                   labelKey="hour_label"
                   colorFn={() => "#3b82f6"}
-                  infoText="Displays the number of trades matching the current filter, grouped by entry hour of day."
+                  infoText="Displays the number of trades matching the current filter, grouped by entry time of day."
                 />
                 <TradervueChart
-                  title="PERFORMANCE BY HOUR OF DAY"
+                  title={`PERFORMANCE BY TIME OF DAY${timeframe !== 60 ? ` (${timeframe}-MIN)` : ""}`}
                   data={daysTimes?.by_hour || []}
                   dataKey="total_pnl"
                   labelKey="hour_label"
                   formatValue={(v) => `$${v.toFixed(0)}`}
                   isCurrency
-                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry hour of day."
+                  infoText="Displays the aggregate or average P&L for trades matching the current filter, grouped by entry time of day."
                 />
                 {/* Month of Year */}
                 <TradervueChart

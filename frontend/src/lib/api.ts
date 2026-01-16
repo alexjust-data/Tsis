@@ -247,13 +247,14 @@ export const reportsApi = {
 
   getDaysTimes: (
     token: string,
-    params?: { ticker?: string; side?: "long" | "short"; start_date?: string; end_date?: string }
+    params?: { ticker?: string; side?: "long" | "short"; start_date?: string; end_date?: string; timeframe?: number }
   ) => {
     const searchParams = new URLSearchParams();
     if (params?.ticker) searchParams.append("ticker", params.ticker);
     if (params?.side) searchParams.append("side", params.side);
     if (params?.start_date) searchParams.append("start_date", params.start_date);
     if (params?.end_date) searchParams.append("end_date", params.end_date);
+    if (params?.timeframe) searchParams.append("timeframe", String(params.timeframe));
 
     const query = searchParams.toString();
     return fetchApi<DaysTimesData>(`/reports/detailed/days-times${query ? `?${query}` : ""}`, { token });
