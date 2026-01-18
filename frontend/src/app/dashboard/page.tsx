@@ -145,15 +145,15 @@ export default function DashboardPage() {
           </div>
         ) : metrics ? (
           <div className="space-y-6">
-            {/* Calculator Widget + Summary Stats */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-              {/* Calculator Widget - Takes 1 column on large screens */}
-              <div className="lg:col-span-1">
+            {/* Calculator Widget + Summary Stats - Side by Side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Calculator Widget - Left Side */}
+              <div>
                 <QuickCalculatorWidget />
               </div>
 
-              {/* Summary Stats - Takes 4 columns on large screens */}
-              <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Summary Stats - Right Side 2x2 Grid */}
+              <div className="grid grid-cols-2 gap-4">
                 <StatCard
                   title="Total P&L"
                   value={formatCurrency(metrics.total_pnl)}
