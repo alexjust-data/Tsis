@@ -15,6 +15,7 @@ import {
   Upload,
   ChevronLeft,
   ChevronRight,
+  Shield,
 } from 'lucide-react';
 
 interface NavItem {
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/trades', label: 'Trades', icon: FileText },
   { href: '/journal', label: 'Journal', icon: BookOpen },
+  { href: '/calculator', label: 'Risk Management', icon: Shield },
   { href: '/trades/new', label: 'New Trade', icon: PlusCircle },
   { href: '/community', label: 'Community', icon: Users },
   { href: '/search', label: 'Search', icon: Search },

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { dashboardApi, tradesApi, type DashboardMetrics, type Trade, type TickerStats } from "@/lib/api";
 import AppLayout from "@/components/layout/AppLayout";
+import QuickCalculatorWidget from "@/components/calculator/QuickCalculatorWidget";
 import {
   TrendingUp,
   TrendingDown,
@@ -144,36 +145,44 @@ export default function DashboardPage() {
           </div>
         ) : metrics ? (
           <div className="space-y-6">
-            {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                title="Total P&L"
-                value={formatCurrency(metrics.total_pnl)}
-                subValue={`${metrics.total_trades} trades`}
-                icon={DollarSign}
-                valueColor={metrics.total_pnl >= 0 ? "profit" : "loss"}
-              />
-              <StatCard
-                title="Win Rate"
-                value={formatPercent(metrics.win_rate)}
-                subValue={`${metrics.winning_trades}W / ${metrics.losing_trades}L`}
-                icon={Target}
-                valueColor={metrics.win_rate >= 50 ? "profit" : "loss"}
-              />
-              <StatCard
-                title="Profit Factor"
-                value={metrics.profit_factor.toFixed(2)}
-                subValue={`Avg Win: ${formatCurrency(metrics.avg_win)}`}
-                icon={BarChart3}
-                valueColor={metrics.profit_factor >= 1 ? "profit" : "loss"}
-              />
-              <StatCard
-                title="Today"
-                value={formatCurrency(metrics.today_pnl)}
-                subValue={`Week: ${formatCurrency(metrics.week_pnl)}`}
-                icon={Calendar}
-                valueColor={metrics.today_pnl >= 0 ? "profit" : "loss"}
-              />
+            {/* Calculator Widget + Summary Stats */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Calculator Widget - Takes 1 column on large screens */}
+              <div className="lg:col-span-1">
+                <QuickCalculatorWidget />
+              </div>
+
+              {/* Summary Stats - Takes 4 columns on large screens */}
+              <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title="Total P&L"
+                  value={formatCurrency(metrics.total_pnl)}
+                  subValue={`${metrics.total_trades} trades`}
+                  icon={DollarSign}
+                  valueColor={metrics.total_pnl >= 0 ? "profit" : "loss"}
+                />
+                <StatCard
+                  title="Win Rate"
+                  value={formatPercent(metrics.win_rate)}
+                  subValue={`${metrics.winning_trades}W / ${metrics.losing_trades}L`}
+                  icon={Target}
+                  valueColor={metrics.win_rate >= 50 ? "profit" : "loss"}
+                />
+                <StatCard
+                  title="Profit Factor"
+                  value={metrics.profit_factor.toFixed(2)}
+                  subValue={`Avg Win: ${formatCurrency(metrics.avg_win)}`}
+                  icon={BarChart3}
+                  valueColor={metrics.profit_factor >= 1 ? "profit" : "loss"}
+                />
+                <StatCard
+                  title="Today"
+                  value={formatCurrency(metrics.today_pnl)}
+                  subValue={`Week: ${formatCurrency(metrics.week_pnl)}`}
+                  icon={Calendar}
+                  valueColor={metrics.today_pnl >= 0 ? "profit" : "loss"}
+                />
+              </div>
             </div>
 
             {/* Long/Short Performance */}
