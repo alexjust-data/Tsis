@@ -93,13 +93,13 @@ function FeatureCard({
             top: tooltipPos.y + 15,
             backgroundColor: "#1e222d",
             border: `1px solid #363a45`,
-            borderLeftColor: "#787b86",
+            borderLeftColor: "#d1d4dc",
             borderLeftWidth: "3px",
           }}
         >
-          <span className="font-semibold text-[#787b86]">{techTitle}</span>
-          <span className="text-[#787b86]"> — </span>
-          <span className="text-[#9ca3af]">{techDescription}</span>
+          <span className="font-semibold text-[#d1d4dc]">{techTitle}</span>
+          <span className="text-[#9ba4b8]"> — </span>
+          <span className="text-[#9ba4b8]">{techDescription}</span>
         </div>
       )}
     </div>
@@ -112,7 +112,7 @@ export default function Home() {
       {/* Header - NO border */}
       <header>
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <div className="flex items-baseline gap-2">
             <Link href="/" className="text-white font-bold text-xl tracking-tight">
               TSIS<span className="text-white">.ai</span>
             </Link>
