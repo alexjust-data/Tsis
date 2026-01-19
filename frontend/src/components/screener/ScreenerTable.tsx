@@ -103,9 +103,9 @@ export default function ScreenerTable({
   };
 
   return (
-    <div className="bg-[#131722] border border-[#2a2e39] rounded overflow-hidden">
+    <div className="bg-[#131722] border border-[#2a2e39] rounded overflow-hidden w-full">
       {/* Table */}
-      <table className="text-[13px]">
+      <table className="w-full text-[13px]">
         <thead>
           <tr className="text-[#787b86] text-xs border-b border-[#2a2e39]">
             <th className="text-left py-2 px-3 font-normal">Ticker</th>
