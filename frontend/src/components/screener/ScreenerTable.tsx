@@ -37,21 +37,21 @@ function ChartTooltip({
     <div
       className="fixed z-50 bg-[#131722] border border-[#363a45] rounded shadow-2xl overflow-hidden"
       style={{
-        left: position.x + 15,
-        top: position.y - 120,
-        width: 400,
-        height: 220,
+        left: position.x + 20,
+        top: position.y - 180,
+        width: 550,
+        height: 320,
       }}
     >
       {/* Header like Finviz */}
-      <div className="bg-[#1e222d] px-3 py-1.5 flex items-center justify-between border-b border-[#363a45]">
-        <span className="text-white font-bold text-lg">{ticker}</span>
-        <span className="text-[#787b86] text-xs">Daily</span>
+      <div className="bg-[#1e222d] px-4 py-2 flex items-center justify-between border-b border-[#363a45]">
+        <span className="text-white font-bold text-xl">{ticker}</span>
+        <span className="text-[#787b86] text-sm">Daily</span>
       </div>
       <iframe
         src={chartUrl}
         className="w-full border-0"
-        style={{ height: "185px" }}
+        style={{ height: "280px" }}
         title={`${ticker} chart`}
       />
     </div>

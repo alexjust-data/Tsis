@@ -42,7 +42,7 @@ const SCREEN_SHORT_DATA = [
   { ticker: "FYBR", last: 38.49, change: 0.13, volume: "13.03M", signal: "Halted" },
 ];
 
-// Feature Card with hover tooltip - ONLY icon has color
+// Feature Card with floating tooltip - ONLY icon has color
 function FeatureCard({
   icon: Icon,
   title,
@@ -61,36 +61,46 @@ function FeatureCard({
   color: string;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setTooltipPos({ x: e.clientX, y: e.clientY });
+  };
 
   return (
     <div
-      className="relative bg-[#131722] border border-[#2a2e39] rounded p-4 transition-colors"
+      className="bg-[#131722] border border-[#2a2e39] rounded p-4 transition-colors"
       style={{ borderColor: showTooltip ? color : undefined }}
       onMouseEnter={() => setShowTooltip(true)}
+      onMouseMove={handleMouseMove}
       onMouseLeave={() => setShowTooltip(false)}
     >
       <div className="flex items-center gap-2 mb-3">
         <Icon className="h-5 w-5" style={{ color }} />
         <h3 className="text-white font-semibold text-sm">{title}</h3>
       </div>
-      {/* Subtitle - NO color, just white */}
       <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
       <p className="text-[#787b86] text-xs leading-relaxed">
         {description}
       </p>
 
-      {/* Floating Tooltip */}
+      {/* Floating Tooltip - position fixed like chart tooltip */}
       {showTooltip && (
         <div
-          className="absolute left-0 right-0 top-full mt-2 z-10 px-3 py-2 rounded-r text-[10px] text-[#787b86]"
+          className="fixed z-50 px-4 py-3 rounded shadow-2xl text-xs text-[#787b86] max-w-[350px]"
           style={{
-            borderLeft: `2px solid ${color}`,
-            backgroundColor: `${color}10`,
+            left: tooltipPos.x + 15,
+            top: tooltipPos.y + 15,
+            borderLeft: `3px solid ${color}`,
+            backgroundColor: "#1e222d",
+            border: `1px solid #363a45`,
+            borderLeftColor: color,
+            borderLeftWidth: "3px",
           }}
         >
-          <span style={{ color }} className="font-medium">{techTitle}</span>
-          {" — "}
-          {techDescription}
+          <span style={{ color }} className="font-semibold">{techTitle}</span>
+          <span className="text-[#787b86]"> — </span>
+          <span className="text-[#9ca3af]">{techDescription}</span>
         </div>
       )}
     </div>
