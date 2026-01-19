@@ -52,34 +52,84 @@ const config = {
                     DEFAULT: "hsl(var(--card))",
                     foreground: "hsl(var(--card-foreground))",
                 },
-                // Finviz exact colors
-                finviz: {
+                // Finviz exact colors - Complete Design System
+                fv: {
+                    // Backgrounds
                     bg: {
-                        DEFAULT: "#22262f",
-                        dark: "#14161d",
-                        card: "#1a1d24",
+                        DEFAULT: "#22262f",    // Main surface
+                        dark: "#14161d",       // Darkest (body)
+                        panel: "#1a1d24",      // Card/panel
+                        secondary: "#1e2128",  // Secondary surface
+                        tertiary: "#262931",   // Tertiary surface
+                        hover: "#2d3139",      // Hover state
                     },
+                    // Text colors
                     text: {
-                        DEFAULT: "#ffffff",
-                        muted: "#707990",
-                        dim: "#5a6478",
+                        DEFAULT: "#f3f3f5",    // Primary text
+                        muted: "#707990",      // Muted text
+                        "muted-2": "#9ba4b8",  // Secondary muted
+                        "muted-3": "#a3a8b9",  // Tertiary muted
+                        dim: "#4c5263",        // Dimmed text
+                        disabled: "#5a6478",   // Disabled state
                     },
-                    profit: {
-                        DEFAULT: "#00a449",
-                        dark: "#19803d",
-                        light: "#00c853",
+                    // Positive/Success colors
+                    positive: {
+                        DEFAULT: "#00a449",    // Primary green
+                        bright: "#34c062",     // Bright green
+                        light: "#00c853",      // Light green
+                        dark: "#19803d",       // Dark green
+                        bg: "#1e4027",         // Green background
+                        subtle: "rgba(0, 164, 73, 0.15)",
                     },
-                    loss: {
-                        DEFAULT: "#d91e2b",
-                        dark: "#b71c1c",
-                        light: "#fb5057",
+                    // Negative/Danger colors
+                    negative: {
+                        DEFAULT: "#d91e2b",    // Primary red
+                        bright: "#fb5057",     // Bright red
+                        light: "#fd8487",      // Light red
+                        dark: "#b71c1c",       // Dark red
+                        bg: "#45171a",         // Red background
+                        subtle: "rgba(217, 30, 43, 0.15)",
                     },
+                    // Link/Accent blue
                     blue: {
-                        DEFAULT: "#2f91ef",
-                        dark: "#1976d2",
-                        light: "#64b5f6",
+                        DEFAULT: "#57aefd",    // Link blue (dark mode)
+                        primary: "#2f91ef",    // Primary blue
+                        dark: "#1976d2",       // Dark blue
+                        light: "#7bc0ff",      // Light blue (hover)
                     },
-                    border: "#2d3139",
+                    // Warning/Amber
+                    warning: {
+                        DEFAULT: "#f59e0b",
+                        dark: "#d97706",
+                        light: "#fbbf24",
+                    },
+                    // Purple/Violet accent
+                    purple: {
+                        DEFAULT: "#7c51e7",
+                        dark: "#6d28d9",
+                        light: "#a78bfa",
+                    },
+                    // Borders
+                    border: {
+                        DEFAULT: "#2d3139",    // Primary border
+                        secondary: "#353945",  // Secondary border
+                        accent: "#676f89",     // Accent border
+                    },
+                    // Gray scale (matching Finviz)
+                    gray: {
+                        50: "#f3f3f5",
+                        100: "#dedfe5",
+                        200: "#c3c6d0",
+                        300: "#a3a8b9",
+                        400: "#707990",
+                        500: "#4c5263",
+                        600: "#3d4149",
+                        700: "#353945",
+                        750: "#2d3139",
+                        800: "#1e2128",
+                        850: "#171a21",
+                        900: "#14161d",
+                    },
                 },
             },
             borderRadius: {
