@@ -156,6 +156,7 @@ export default function Home() {
             techTitle="Big Data & Quant Research"
             techDescription="Not just a scanner; a quantitative analysis engine processing years of micro-movements to deliver statistical edge before market open."
             color="#2962ff"
+            href="/analytics"
           />
 
           <FeatureCard
@@ -166,6 +167,7 @@ export default function Home() {
             techTitle="Hybrid Machine Learning"
             techDescription="The system executes your same plays under rigid systematic trading rules. Comparative analysis between human intuition and algorithmic efficiency."
             color="#26a69a"
+            href="/strategies"
           />
 
           <FeatureCard
