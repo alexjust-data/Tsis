@@ -69,7 +69,7 @@ function FeatureCard({
 
   return (
     <div
-      className="bg-[#131722] border border-[#2a2e39] rounded p-4 transition-colors"
+      className="bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-colors"
       style={{ borderColor: showTooltip ? color : undefined }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseMove={handleMouseMove}
@@ -87,7 +87,7 @@ function FeatureCard({
       {/* Floating Tooltip - position fixed like chart tooltip */}
       {showTooltip && (
         <div
-          className="fixed z-50 px-4 py-3 rounded shadow-2xl text-xs text-[#787b86] max-w-[350px]"
+          className="fixed z-50 px-4 py-3 rounded-lg shadow-2xl text-xs text-[#787b86] max-w-[350px]"
           style={{
             left: tooltipPos.x + 15,
             top: tooltipPos.y + 15,
@@ -114,7 +114,7 @@ export default function Home() {
       <header>
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Link href="/" className="text-[#26a69a] font-bold text-xl tracking-tight">
+            <Link href="/" className="text-white font-bold text-xl tracking-tight">
               TSIS<span className="text-white">.ai</span>
             </Link>
             <span className="text-[#787b86] text-sm">to SmallCaps Trading</span>

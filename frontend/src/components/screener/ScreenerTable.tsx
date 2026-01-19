@@ -35,7 +35,7 @@ function ChartTooltip({
 
   return (
     <div
-      className="fixed z-50 bg-[#131722] border border-[#363a45] rounded shadow-2xl overflow-hidden"
+      className="fixed z-50 bg-[#131722] border border-[#363a45] rounded-lg shadow-2xl overflow-hidden"
       style={{
         left: position.x + 20,
         top: position.y - 180,
@@ -48,12 +48,15 @@ function ChartTooltip({
         <span className="text-white font-bold text-xl">{ticker}</span>
         <span className="text-[#787b86] text-sm">Daily</span>
       </div>
-      <iframe
-        src={chartUrl}
-        className="w-full border-0"
-        style={{ height: "280px" }}
-        title={`${ticker} chart`}
-      />
+      {/* Chart container - clips the TradingView toolbar */}
+      <div className="overflow-hidden" style={{ height: "280px" }}>
+        <iframe
+          src={chartUrl}
+          className="w-full border-0"
+          style={{ height: "320px", marginTop: "-38px" }}
+          title={`${ticker} chart`}
+        />
+      </div>
     </div>
   );
 }
@@ -108,17 +111,17 @@ export default function ScreenerTable({
   };
 
   return (
-    <div className="bg-[#131722] border border-[#2a2e39] rounded overflow-hidden inline-block">
+    <div className="bg-[#131722] border border-[#2a2e39] rounded-lg overflow-hidden inline-block">
       {/* Table - NO w-full, compact */}
       <table className="text-[13px]">
         <thead>
-          <tr className="text-[#787b86] text-xs border-b border-[#2a2e39]">
-            <th className="text-left py-2 px-3 font-normal">Ticker</th>
-            <th className="text-right py-2 px-3 font-normal">Last</th>
-            <th className="text-right py-2 px-3 font-normal">Change</th>
-            <th className="text-right py-2 px-3 font-normal">Volume</th>
-            <th className="text-left py-2 px-3 font-normal">Signal</th>
-            <th className="text-right py-2 px-2 font-normal">
+          <tr className="text-[#787b86] text-xs">
+            <th className="text-left py-2 px-3 font-semibold">Ticker</th>
+            <th className="text-right py-2 px-3 font-semibold">Last</th>
+            <th className="text-right py-2 px-3 font-semibold">Change</th>
+            <th className="text-right py-2 px-3 font-semibold">Volume</th>
+            <th className="text-left py-2 px-3 font-semibold">Signal</th>
+            <th className="text-right py-2 px-2 font-semibold">
               <div className="relative inline-block" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
