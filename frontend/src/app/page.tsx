@@ -51,6 +51,7 @@ function FeatureCard({
   techTitle,
   techDescription,
   color,
+  href,
 }: {
   icon: React.ElementType;
   title: string;
@@ -59,6 +60,7 @@ function FeatureCard({
   techTitle: string;
   techDescription: string;
   color: string;
+  href?: string;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -67,13 +69,20 @@ function FeatureCard({
     setTooltipPos({ x: e.clientX, y: e.clientY });
   };
 
+  const handleClick = () => {
+    if (href) {
+      window.location.href = href;
+    }
+  };
+
   return (
     <div
-      className="bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-colors"
+      className={`bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-colors ${href ? 'cursor-pointer' : ''}`}
       style={{ borderColor: showTooltip ? color : undefined }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setShowTooltip(false)}
+      onClick={handleClick}
     >
       <div className="flex items-center gap-2 mb-3">
         <Icon className="h-5 w-5" style={{ color }} />
@@ -167,6 +176,7 @@ export default function Home() {
             techTitle="Feedback Loop"
             techDescription="Full integration: what you record in your journal feeds global statistics, closing the circle between theory (Analytics) and practice (Stocks in Play)."
             color="#ff9800"
+            href="/dashboard"
           />
         </div>
 
