@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Database, Cpu, LineChart } from "lucide-react";
 import ScreenerTable from "@/components/screener/ScreenerTable";
 
-// Mock data for screeners - will be sorted by component
+// Mock data for screeners
 const SCREEN_LONG_DATA = [
   { ticker: "JAGX", last: 1.43, change: 87.05, volume: "160.40M", signal: "Top Gainers 1M" },
   { ticker: "AUUD", last: 0.94, change: -7.43, volume: "1.06M", signal: "Top Gainers 1M" },
@@ -42,7 +42,7 @@ const SCREEN_SHORT_DATA = [
   { ticker: "FYBR", last: 38.49, change: 0.13, volume: "13.03M", signal: "Halted" },
 ];
 
-// Feature Card with hover tooltip
+// Feature Card with hover tooltip - ONLY icon has color
 function FeatureCard({
   icon: Icon,
   title,
@@ -64,7 +64,7 @@ function FeatureCard({
 
   return (
     <div
-      className="relative bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-opacity-50 transition-colors"
+      className="relative bg-[#131722] border border-[#2a2e39] rounded p-4 transition-colors"
       style={{ borderColor: showTooltip ? color : undefined }}
       onMouseEnter={() => setShowTooltip(true)}
       onMouseLeave={() => setShowTooltip(false)}
@@ -73,7 +73,8 @@ function FeatureCard({
         <Icon className="h-5 w-5" style={{ color }} />
         <h3 className="text-white font-semibold text-sm">{title}</h3>
       </div>
-      <p className="text-sm mb-2" style={{ color }}>{subtitle}</p>
+      {/* Subtitle - NO color, just white */}
+      <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
       <p className="text-[#787b86] text-xs leading-relaxed">
         {description}
       </p>
@@ -160,8 +161,8 @@ export default function Home() {
           />
         </div>
 
-        {/* Screeners */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        {/* Screeners - Centered, compact, not full width */}
+        <div className="flex justify-center gap-8 mb-6">
           <ScreenerTable
             title="SCREEN LONG"
             data={SCREEN_LONG_DATA}

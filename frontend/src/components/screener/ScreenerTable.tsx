@@ -15,10 +15,10 @@ interface ScreenerTableProps {
   title: string;
   data: ScreenerData[];
   defaultTimeframe?: "intraday" | "daily";
-  sortDirection?: "desc" | "asc"; // desc for LONG (highest first), asc for SHORT (lowest first)
+  sortDirection?: "desc" | "asc";
 }
 
-// Chart tooltip component - Clean minimal style like Finviz
+// Chart tooltip - Finviz style with candlestick chart
 function ChartTooltip({
   ticker,
   isVisible,
@@ -30,22 +30,28 @@ function ChartTooltip({
 }) {
   if (!isVisible) return null;
 
-  // TradingView mini chart - minimal clean version
-  const chartUrl = `https://s.tradingview.com/embed-widget/mini-symbol-overview/?locale=en#%7B%22symbol%22%3A%22${ticker}%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A%22100%25%22%2C%22dateRange%22%3A%221M%22%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22autosize%22%3Atrue%2C%22largeChartUrl%22%3A%22%22%2C%22noTimeScale%22%3Atrue%2C%22chartOnly%22%3Atrue%7D`;
+  // TradingView advanced chart - candlestick style like Finviz
+  const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tv_chart&symbol=${ticker}&interval=D&hidelegend=1&hidetoptoolbar=1&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=0&showpopupbutton=0&locale=en&utm_source=&utm_medium=widget&utm_campaign=chart&utm_term=${ticker}`;
 
   return (
     <div
-      className="fixed z-50 bg-[#131722] border border-[#2a2e39] rounded shadow-2xl overflow-hidden"
+      className="fixed z-50 bg-[#131722] border border-[#363a45] rounded shadow-2xl overflow-hidden"
       style={{
         left: position.x + 15,
-        top: position.y - 80,
-        width: 320,
-        height: 180,
+        top: position.y - 120,
+        width: 400,
+        height: 220,
       }}
     >
+      {/* Header like Finviz */}
+      <div className="bg-[#1e222d] px-3 py-1.5 flex items-center justify-between border-b border-[#363a45]">
+        <span className="text-white font-bold text-lg">{ticker}</span>
+        <span className="text-[#787b86] text-xs">Daily</span>
+      </div>
       <iframe
         src={chartUrl}
-        className="w-full h-full border-0"
+        className="w-full border-0"
+        style={{ height: "185px" }}
         title={`${ticker} chart`}
       />
     </div>
@@ -68,9 +74,9 @@ export default function ScreenerTable({
   const sortedData = useMemo(() => {
     return [...data].sort((a, b) => {
       if (sortDirection === "desc") {
-        return b.change - a.change; // Highest change first (for LONG)
+        return b.change - a.change;
       } else {
-        return a.change - b.change; // Lowest change first (for SHORT)
+        return a.change - b.change;
       }
     });
   }, [data, sortDirection]);
@@ -78,7 +84,6 @@ export default function ScreenerTable({
   // Format signal based on timeframe
   const formatSignal = (signal: string) => {
     if (timeframe === "daily") {
-      // Remove timeframe suffix like " 1M", " 15M", " 1H", " 4H"
       return signal.replace(/\s+(1M|15M|1H|4H)$/, "");
     }
     return signal;
@@ -103,9 +108,9 @@ export default function ScreenerTable({
   };
 
   return (
-    <div className="bg-[#131722] border border-[#2a2e39] rounded overflow-hidden w-full">
-      {/* Table */}
-      <table className="w-full text-[13px]">
+    <div className="bg-[#131722] border border-[#2a2e39] rounded overflow-hidden inline-block">
+      {/* Table - NO w-full, compact */}
+      <table className="text-[13px]">
         <thead>
           <tr className="text-[#787b86] text-xs border-b border-[#2a2e39]">
             <th className="text-left py-2 px-3 font-normal">Ticker</th>
@@ -114,7 +119,6 @@ export default function ScreenerTable({
             <th className="text-right py-2 px-3 font-normal">Volume</th>
             <th className="text-left py-2 px-3 font-normal">Signal</th>
             <th className="text-right py-2 px-2 font-normal">
-              {/* Dropdown */}
               <div className="relative inline-block" ref={dropdownRef}>
                 <button
                   onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -160,7 +164,6 @@ export default function ScreenerTable({
               key={`${row.ticker}-${index}`}
               className="border-b border-[#2a2e39]/50 hover:bg-[#1e222d] transition-colors"
             >
-              {/* Ticker - Cyan color like Finviz */}
               <td className="py-1 px-3">
                 <span
                   className="text-[#00bcd4] font-medium cursor-pointer hover:underline"
@@ -171,37 +174,26 @@ export default function ScreenerTable({
                   {row.ticker}
                 </span>
               </td>
-
-              {/* Last Price */}
               <td className="py-1 px-3 text-right text-[#d1d4dc]">
                 {row.last.toFixed(2)}
               </td>
-
-              {/* Change */}
               <td className={`py-1 px-3 text-right ${
                 row.change >= 0 ? "text-[#26a69a]" : "text-[#ef5350]"
               }`}>
                 {formatChange(row.change)}
               </td>
-
-              {/* Volume */}
               <td className="py-1 px-3 text-right text-[#787b86]">
                 {row.volume}
               </td>
-
-              {/* Signal */}
               <td className="py-1 px-3 text-[#787b86] whitespace-nowrap">
                 {formatSignal(row.signal)}
               </td>
-
-              {/* Empty alignment cell */}
               <td className="py-1 px-2"></td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Chart Tooltip */}
       <ChartTooltip
         ticker={hoveredTicker || ""}
         isVisible={!!hoveredTicker}
