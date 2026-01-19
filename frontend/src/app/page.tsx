@@ -87,18 +87,17 @@ function FeatureCard({
       {/* Floating Tooltip - position fixed like chart tooltip */}
       {showTooltip && (
         <div
-          className="fixed z-50 px-4 py-3 rounded-lg shadow-2xl text-xs text-[#787b86] max-w-[350px]"
+          className="fixed z-50 px-4 py-3 rounded-lg shadow-2xl text-xs max-w-[350px]"
           style={{
             left: tooltipPos.x + 15,
             top: tooltipPos.y + 15,
-            borderLeft: `3px solid ${color}`,
             backgroundColor: "#1e222d",
             border: `1px solid #363a45`,
-            borderLeftColor: color,
+            borderLeftColor: "#787b86",
             borderLeftWidth: "3px",
           }}
         >
-          <span style={{ color }} className="font-semibold">{techTitle}</span>
+          <span className="font-semibold text-[#787b86]">{techTitle}</span>
           <span className="text-[#787b86]"> — </span>
           <span className="text-[#9ca3af]">{techDescription}</span>
         </div>
