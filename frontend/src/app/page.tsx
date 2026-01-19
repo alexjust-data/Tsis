@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Calendar, Upload } from "lucide-react";
+import { Database, Cpu, LineChart } from "lucide-react";
 import ScreenerTable from "@/components/screener/ScreenerTable";
 
-// Mock data for screeners
+// Mock data for screeners - will be sorted by component
 const SCREEN_LONG_DATA = [
   { ticker: "JAGX", last: 1.43, change: 87.05, volume: "160.40M", signal: "Top Gainers 1M" },
   { ticker: "AUUD", last: 0.94, change: -7.43, volume: "1.06M", signal: "Top Gainers 1M" },
@@ -43,23 +43,26 @@ const SCREEN_SHORT_DATA = [
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#0b0e11]">
+    <main className="min-h-screen bg-[#0d1117]">
       {/* Header */}
-      <header className="border-b border-[#1e2128]">
-        <div className="max-w-[1400px] mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="text-[#00a449] font-bold text-xl tracking-tight">
-            TSIS<span className="text-white">.ai</span>
-          </Link>
+      <header className="border-b border-[#21262d]">
+        <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link href="/" className="text-[#26a69a] font-bold text-xl tracking-tight">
+              TSIS<span className="text-white">.ai</span>
+            </Link>
+            <span className="text-[#787b86] text-sm">to SmallCaps Trading</span>
+          </div>
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="px-4 py-2 text-sm font-medium text-white bg-[#2f91ef] hover:bg-[#2f91ef]/90 rounded transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-[#2962ff] hover:bg-[#2962ff]/90 rounded transition-colors"
             >
               Get Started
             </Link>
             <Link
               href="/register"
-              className="px-4 py-2 text-sm font-medium text-[#2f91ef] border border-[#2f91ef] hover:bg-[#2f91ef]/10 rounded transition-colors"
+              className="px-4 py-2 text-sm font-medium text-[#2962ff] border border-[#2962ff] hover:bg-[#2962ff]/10 rounded transition-colors"
             >
               Create Account
             </Link>
@@ -68,43 +71,73 @@ export default function Home() {
       </header>
 
       {/* Main Content */}
-      <div className="max-w-[1400px] mx-auto px-4 py-6">
+      <div className="max-w-[1200px] mx-auto px-4 py-6">
         {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Market Analytics */}
-          <div className="bg-[#141619] border border-[#1e2128] rounded p-4 hover:border-[#2f91ef]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-2">
-              <BarChart3 className="h-5 w-5 text-[#2f91ef]" />
-              <h3 className="text-white font-semibold">MARKET ANALYTICS</h3>
+          {/* Historical Intelligence */}
+          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#2962ff]/50 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Database className="h-5 w-5 text-[#2962ff]" />
+              <h3 className="text-white font-semibold text-sm">MARKET ANALYTICS</h3>
             </div>
-            <p className="text-[#707990] text-sm mb-2">Performance Analytics</p>
-            <p className="text-[#505664] text-xs">
-              Win rate, profit factor, P&L by ticker, timing analysis, and more. All calculated automatically.
+            <p className="text-[#d1d4dc] text-sm mb-2">Historical Intelligence</p>
+            <p className="text-[#787b86] text-xs leading-relaxed">
+              Explore our massive historical database with advanced Small Caps analytics.
+              Identify <em className="text-[#2962ff] not-italic">success patterns</em> through
+              the study of previous behaviors, correlations and performance metrics similar
+              to high-precision <em className="text-[#2962ff] not-italic">institutional research</em>.
             </p>
+            <div className="mt-3 border-l-2 border-[#2962ff] bg-[#2962ff]/5 px-3 py-2 rounded-r">
+              <p className="text-[10px] text-[#787b86]">
+                <span className="text-[#2962ff] font-medium">Big Data & Quant Research</span> —
+                Not just a scanner; a quantitative analysis engine processing years of micro-movements
+                to deliver statistical edge before market open.
+              </p>
+            </div>
           </div>
 
-          {/* Strategies */}
-          <div className="bg-[#141619] border border-[#1e2128] rounded p-4 hover:border-[#00a449]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-2">
-              <Calendar className="h-5 w-5 text-[#00a449]" />
-              <h3 className="text-white font-semibold">STRATEGIES</h3>
+          {/* Real-Time Algorithmic Execution */}
+          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#26a69a]/50 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <Cpu className="h-5 w-5 text-[#26a69a]" />
+              <h3 className="text-white font-semibold text-sm">STRATEGIES & STOCKS IN PLAY</h3>
             </div>
-            <p className="text-[#707990] text-sm mb-2">Calendar View</p>
-            <p className="text-[#505664] text-xs">
-              Visual calendar showing your daily P&L, number of trades, and win rate. Identify patterns.
+            <p className="text-[#d1d4dc] text-sm mb-2">Real-Time Algorithmic Execution</p>
+            <p className="text-[#787b86] text-xs leading-relaxed">
+              The central app monitoring Stocks in Play. TSIS automatically applies predictive
+              strategies on the day{"'"}s hottest assets. Compare your manual trading against
+              programmed <em className="text-[#26a69a] not-italic">systematic execution</em> to
+              detect deviations and optimize your <em className="text-[#26a69a] not-italic">edge</em>.
             </p>
+            <div className="mt-3 border-l-2 border-[#26a69a] bg-[#26a69a]/5 px-3 py-2 rounded-r">
+              <p className="text-[10px] text-[#787b86]">
+                <span className="text-[#26a69a] font-medium">Hybrid Machine Learning</span> —
+                The system executes your same plays under rigid systematic trading rules.
+                Comparative analysis between human intuition and algorithmic efficiency.
+              </p>
+            </div>
           </div>
 
-          {/* Tracking Performance */}
-          <div className="bg-[#141619] border border-[#1e2128] rounded p-4 hover:border-[#a855f7]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-2">
-              <Upload className="h-5 w-5 text-[#a855f7]" />
-              <h3 className="text-white font-semibold">TRACKING PERFORMANCE</h3>
+          {/* Performance Journaling */}
+          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#ff9800]/50 transition-colors">
+            <div className="flex items-center gap-2 mb-3">
+              <LineChart className="h-5 w-5 text-[#ff9800]" />
+              <h3 className="text-white font-semibold text-sm">TRACKING PERFORMANCE</h3>
             </div>
-            <p className="text-[#707990] text-sm mb-2">Easy Import</p>
-            <p className="text-[#505664] text-xs">
-              Import your trades from any broker export. Supports CSV and Excel files with automatic column mapping.
+            <p className="text-[#d1d4dc] text-sm mb-2">Performance Journaling</p>
+            <p className="text-[#787b86] text-xs leading-relaxed">
+              Your intelligent trading journal. Import trades via CSV/Excel for deep
+              <em className="text-[#ff9800] not-italic"> profitability</em> breakdown.
+              Visualize equity curve, Sharpe ratios, and risk statistics automatically
+              to transform data into <em className="text-[#ff9800] not-italic">winning decisions</em>.
             </p>
+            <div className="mt-3 border-l-2 border-[#ff9800] bg-[#ff9800]/5 px-3 py-2 rounded-r">
+              <p className="text-[10px] text-[#787b86]">
+                <span className="text-[#ff9800] font-medium">Feedback Loop</span> —
+                Full integration: what you record in your journal feeds global statistics,
+                closing the circle between theory (Analytics) and practice (Stocks in Play).
+              </p>
+            </div>
           </div>
         </div>
 
@@ -114,16 +147,18 @@ export default function Home() {
             title="SCREEN LONG"
             data={SCREEN_LONG_DATA}
             defaultTimeframe="intraday"
+            sortDirection="desc"
           />
           <ScreenerTable
             title="SCREEN SHORT"
             data={SCREEN_SHORT_DATA}
             defaultTimeframe="intraday"
+            sortDirection="asc"
           />
         </div>
 
         {/* Footer */}
-        <div className="text-center text-[#505664] text-xs py-4 border-t border-[#1e2128]">
+        <div className="text-center text-[#787b86] text-xs py-4 border-t border-[#21262d]">
           Built for traders, by traders. Start tracking your performance today.
         </div>
       </div>
