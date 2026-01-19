@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { Database, Cpu, LineChart } from "lucide-react";
 import ScreenerTable from "@/components/screener/ScreenerTable";
@@ -41,11 +42,65 @@ const SCREEN_SHORT_DATA = [
   { ticker: "FYBR", last: 38.49, change: 0.13, volume: "13.03M", signal: "Halted" },
 ];
 
+// Feature Card with hover tooltip
+function FeatureCard({
+  icon: Icon,
+  title,
+  subtitle,
+  description,
+  techTitle,
+  techDescription,
+  color,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  description: string;
+  techTitle: string;
+  techDescription: string;
+  color: string;
+}) {
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  return (
+    <div
+      className="relative bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-opacity-50 transition-colors"
+      style={{ borderColor: showTooltip ? color : undefined }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <Icon className="h-5 w-5" style={{ color }} />
+        <h3 className="text-white font-semibold text-sm">{title}</h3>
+      </div>
+      <p className="text-sm mb-2" style={{ color }}>{subtitle}</p>
+      <p className="text-[#787b86] text-xs leading-relaxed">
+        {description}
+      </p>
+
+      {/* Floating Tooltip */}
+      {showTooltip && (
+        <div
+          className="absolute left-0 right-0 top-full mt-2 z-10 px-3 py-2 rounded-r text-[10px] text-[#787b86]"
+          style={{
+            borderLeft: `2px solid ${color}`,
+            backgroundColor: `${color}10`,
+          }}
+        >
+          <span style={{ color }} className="font-medium">{techTitle}</span>
+          {" — "}
+          {techDescription}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main className="min-h-screen bg-[#0d1117]">
-      {/* Header */}
-      <header className="border-b border-[#21262d]">
+      {/* Header - NO border */}
+      <header>
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Link href="/" className="text-[#26a69a] font-bold text-xl tracking-tight">
@@ -73,72 +128,36 @@ export default function Home() {
       {/* Main Content */}
       <div className="max-w-[1200px] mx-auto px-4 py-6">
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Historical Intelligence */}
-          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#2962ff]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <Database className="h-5 w-5 text-[#2962ff]" />
-              <h3 className="text-white font-semibold text-sm">MARKET ANALYTICS</h3>
-            </div>
-            <p className="text-[#d1d4dc] text-sm mb-2">Historical Intelligence</p>
-            <p className="text-[#787b86] text-xs leading-relaxed">
-              Explore our massive historical database with advanced Small Caps analytics.
-              Identify <em className="text-[#2962ff] not-italic">success patterns</em> through
-              the study of previous behaviors, correlations and performance metrics similar
-              to high-precision <em className="text-[#2962ff] not-italic">institutional research</em>.
-            </p>
-            <div className="mt-3 border-l-2 border-[#2962ff] bg-[#2962ff]/5 px-3 py-2 rounded-r">
-              <p className="text-[10px] text-[#787b86]">
-                <span className="text-[#2962ff] font-medium">Big Data & Quant Research</span> —
-                Not just a scanner; a quantitative analysis engine processing years of micro-movements
-                to deliver statistical edge before market open.
-              </p>
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <FeatureCard
+            icon={Database}
+            title="MARKET ANALYTICS"
+            subtitle="Historical Intelligence"
+            description="Explore our massive historical database with advanced Small Caps analytics. Identify success patterns through the study of previous behaviors, correlations and performance metrics similar to high-precision institutional research."
+            techTitle="Big Data & Quant Research"
+            techDescription="Not just a scanner; a quantitative analysis engine processing years of micro-movements to deliver statistical edge before market open."
+            color="#2962ff"
+          />
 
-          {/* Real-Time Algorithmic Execution */}
-          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#26a69a]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <Cpu className="h-5 w-5 text-[#26a69a]" />
-              <h3 className="text-white font-semibold text-sm">STRATEGIES & STOCKS IN PLAY</h3>
-            </div>
-            <p className="text-[#d1d4dc] text-sm mb-2">Real-Time Algorithmic Execution</p>
-            <p className="text-[#787b86] text-xs leading-relaxed">
-              The central app monitoring Stocks in Play. TSIS automatically applies predictive
-              strategies on the day{"'"}s hottest assets. Compare your manual trading against
-              programmed <em className="text-[#26a69a] not-italic">systematic execution</em> to
-              detect deviations and optimize your <em className="text-[#26a69a] not-italic">edge</em>.
-            </p>
-            <div className="mt-3 border-l-2 border-[#26a69a] bg-[#26a69a]/5 px-3 py-2 rounded-r">
-              <p className="text-[10px] text-[#787b86]">
-                <span className="text-[#26a69a] font-medium">Hybrid Machine Learning</span> —
-                The system executes your same plays under rigid systematic trading rules.
-                Comparative analysis between human intuition and algorithmic efficiency.
-              </p>
-            </div>
-          </div>
+          <FeatureCard
+            icon={Cpu}
+            title="STRATEGIES & STOCKS IN PLAY"
+            subtitle="Real-Time Algorithmic Execution"
+            description="The central app monitoring Stocks in Play. TSIS automatically applies predictive strategies on the day's hottest assets. Compare your manual trading against programmed systematic execution to detect deviations and optimize your edge."
+            techTitle="Hybrid Machine Learning"
+            techDescription="The system executes your same plays under rigid systematic trading rules. Comparative analysis between human intuition and algorithmic efficiency."
+            color="#26a69a"
+          />
 
-          {/* Performance Journaling */}
-          <div className="bg-[#131722] border border-[#2a2e39] rounded p-4 hover:border-[#ff9800]/50 transition-colors">
-            <div className="flex items-center gap-2 mb-3">
-              <LineChart className="h-5 w-5 text-[#ff9800]" />
-              <h3 className="text-white font-semibold text-sm">TRACKING PERFORMANCE</h3>
-            </div>
-            <p className="text-[#d1d4dc] text-sm mb-2">Performance Journaling</p>
-            <p className="text-[#787b86] text-xs leading-relaxed">
-              Your intelligent trading journal. Import trades via CSV/Excel for deep
-              <em className="text-[#ff9800] not-italic"> profitability</em> breakdown.
-              Visualize equity curve, Sharpe ratios, and risk statistics automatically
-              to transform data into <em className="text-[#ff9800] not-italic">winning decisions</em>.
-            </p>
-            <div className="mt-3 border-l-2 border-[#ff9800] bg-[#ff9800]/5 px-3 py-2 rounded-r">
-              <p className="text-[10px] text-[#787b86]">
-                <span className="text-[#ff9800] font-medium">Feedback Loop</span> —
-                Full integration: what you record in your journal feeds global statistics,
-                closing the circle between theory (Analytics) and practice (Stocks in Play).
-              </p>
-            </div>
-          </div>
+          <FeatureCard
+            icon={LineChart}
+            title="TRACKING PERFORMANCE"
+            subtitle="Performance Journaling"
+            description="Your intelligent trading journal. Import trades via CSV/Excel for deep profitability breakdown. Visualize equity curve, Sharpe ratios, and risk statistics automatically to transform data into winning decisions."
+            techTitle="Feedback Loop"
+            techDescription="Full integration: what you record in your journal feeds global statistics, closing the circle between theory (Analytics) and practice (Stocks in Play)."
+            color="#ff9800"
+          />
         </div>
 
         {/* Screeners */}
