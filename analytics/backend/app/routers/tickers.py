@@ -99,12 +99,32 @@ async def get_ticker_intraday(
         # Convert DataFrame to JSON-serializable format
         df_copy = df.copy()
 
+        print(f"DEBUG: Columns for {ticker} on {date}: {df_copy.columns.tolist()}")
+
+        # Handle different possible time column names
+        time_col = None
+        for col in ['time', 'timestamp', 'datetime', 'minute']:
+            if col in df_copy.columns:
+                time_col = col
+                break
+
+        if time_col and time_col != 'time':
+            df_copy['time'] = df_copy[time_col]
+
+        # Convert time to string format
+        if 'time' in df_copy.columns:
+            # Handle different time formats
+            if hasattr(df_copy['time'].iloc[0], 'strftime'):
+                df_copy['time'] = df_copy['time'].apply(lambda x: x.strftime('%H:%M:%S') if hasattr(x, 'strftime') else str(x))
+            else:
+                df_copy['time'] = df_copy['time'].astype(str)
+
         # Ensure we have the required columns
         required_cols = ['time', 'open', 'high', 'low', 'close', 'volume']
         available_cols = [c for c in required_cols if c in df_copy.columns]
 
-        if 'time' in df_copy.columns:
-            df_copy['time'] = df_copy['time'].astype(str)
+        if not available_cols:
+            raise HTTPException(status_code=500, detail=f"No valid columns found. Available: {df_copy.columns.tolist()}")
 
         candles = df_copy[available_cols].to_dict(orient='records')
 
@@ -112,10 +132,13 @@ async def get_ticker_intraday(
             "ticker": ticker,
             "date": date,
             "candles": candles,
-            "count": len(candles)
+            "count": len(candles),
+            "columns": df_copy.columns.tolist()
         }
         return JSONResponse(content=result)
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print(f"ERROR loading intraday: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))

@@ -115,9 +115,17 @@ export interface IntradayData {
 }
 
 export async function fetchIntradayData(ticker: string, date: string): Promise<IntradayData> {
-  const response = await fetch(`${API_BASE_URL}/api/tickers/${ticker}/intraday/${date}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch intraday data: ${response.statusText}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/tickers/${ticker}/intraday/${date}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  } catch (err) {
+    if (err instanceof TypeError && err.message === 'Failed to fetch') {
+      throw new Error('Failed to fetch - backend may not be running');
+    }
+    throw err;
   }
-  return response.json();
 }

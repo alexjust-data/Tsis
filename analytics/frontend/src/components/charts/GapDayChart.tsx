@@ -164,7 +164,15 @@ export default function GapDayChart({ ticker, date, gapOpenPrice }: GapDayChartP
         chartRef.current!.timeScale().fitContent();
       } catch (err) {
         console.error("Failed to load intraday data:", err);
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        const errorMsg = err instanceof Error ? err.message : "Failed to load data";
+        // Check if it's a network error or API error
+        if (errorMsg.includes("404")) {
+          setError(`No intraday data available for ${date}`);
+        } else if (errorMsg.includes("Failed to fetch")) {
+          setError("Cannot connect to server. Is the backend running?");
+        } else {
+          setError(errorMsg);
+        }
       } finally {
         setLoading(false);
       }
