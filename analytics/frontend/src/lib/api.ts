@@ -97,3 +97,27 @@ export async function searchTickers(query: string, limit = 20): Promise<string[]
   const data = await response.json();
   return data.tickers;
 }
+
+export interface IntradayCandle {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface IntradayData {
+  ticker: string;
+  date: string;
+  candles: IntradayCandle[];
+  count: number;
+}
+
+export async function fetchIntradayData(ticker: string, date: string): Promise<IntradayData> {
+  const response = await fetch(`${API_BASE_URL}/api/tickers/${ticker}/intraday/${date}`);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch intraday data: ${response.statusText}`);
+  }
+  return response.json();
+}

@@ -6,7 +6,7 @@ import { fetchGapStats, type GapHistoryItem } from "@/lib/api";
 
 interface GapHistoryProps {
   ticker: string;
-  onGapClick?: (date: string) => void;
+  onGapClick?: (date: string, openPrice: number) => void;
 }
 
 export default function GapHistory({ ticker, onGapClick }: GapHistoryProps) {
@@ -18,9 +18,9 @@ export default function GapHistory({ ticker, onGapClick }: GapHistoryProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleRowClick = (date: string) => {
-    setSelectedDate(date);
-    onGapClick?.(date);
+  const handleRowClick = (item: GapHistoryItem) => {
+    setSelectedDate(item.date);
+    onGapClick?.(item.date, item.open);
   };
 
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function GapHistory({ ticker, onGapClick }: GapHistoryProps) {
               filteredHistory.map((item, index) => (
                 <tr
                   key={index}
-                  onClick={() => handleRowClick(item.date)}
+                  onClick={() => handleRowClick(item)}
                   className={`border-b border-[#2a2e39]/50 cursor-pointer transition-colors ${
                     selectedDate === item.date
                       ? 'bg-[#2962ff]/20 hover:bg-[#2962ff]/30'

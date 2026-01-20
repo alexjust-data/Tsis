@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from typing import Optional
 import json
-from app.services.parquet_service import get_available_tickers, load_ticker_quotes
+from app.services.parquet_service import get_available_tickers, load_ticker_quotes, load_ohlcv_intraday
 
 router = APIRouter()
 
@@ -74,6 +74,45 @@ async def get_ticker_quotes(
             "ticker": ticker,
             "quotes": quotes,
             "count": len(quotes)
+        }
+        return JSONResponse(content=result)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{ticker}/intraday/{date}")
+async def get_ticker_intraday(
+    ticker: str,
+    date: str,
+):
+    """Get intraday 1-minute OHLCV data for a ticker on a specific date."""
+    ticker = ticker.upper()
+
+    try:
+        df = load_ohlcv_intraday(ticker, date)
+
+        if df.empty:
+            raise HTTPException(status_code=404, detail=f"No intraday data found for {ticker} on {date}")
+
+        # Convert DataFrame to JSON-serializable format
+        df_copy = df.copy()
+
+        # Ensure we have the required columns
+        required_cols = ['time', 'open', 'high', 'low', 'close', 'volume']
+        available_cols = [c for c in required_cols if c in df_copy.columns]
+
+        if 'time' in df_copy.columns:
+            df_copy['time'] = df_copy['time'].astype(str)
+
+        candles = df_copy[available_cols].to_dict(orient='records')
+
+        result = {
+            "ticker": ticker,
+            "date": date,
+            "candles": candles,
+            "count": len(candles)
         }
         return JSONResponse(content=result)
     except HTTPException:

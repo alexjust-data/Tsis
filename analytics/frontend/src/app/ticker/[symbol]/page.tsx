@@ -5,6 +5,7 @@ import Sidebar from "@/components/layout/Sidebar";
 import GapStatistics from "@/components/gaps/GapStatistics";
 import GapHistory from "@/components/gaps/GapHistory";
 import TickerInfo from "@/components/ticker/TickerInfo";
+import GapDayChart from "@/components/charts/GapDayChart";
 import { X, Star } from "lucide-react";
 
 interface TickerPageProps {
@@ -24,39 +25,25 @@ export default function TickerPage({ params }: TickerPageProps) {
   const [tickerInfoWidth, setTickerInfoWidth] = useState(400);
   const [isResizingBottom, setIsResizingBottom] = useState(false);
 
-  // Selected gap date for chart navigation
+  // Selected gap date and price for chart navigation
   const [selectedGapDate, setSelectedGapDate] = useState<string | null>(null);
+  const [selectedGapOpenPrice, setSelectedGapOpenPrice] = useState<number>(0);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Generate chart URL with optional date range
-  const getChartUrl = useCallback(() => {
-    const baseUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
-
-    if (selectedGapDate) {
-      // Parse the date (format: YYYY-MM-DD)
-      const gapDate = new Date(selectedGapDate);
-      // Show 30 days before and 10 days after the gap date
-      const fromDate = new Date(gapDate);
-      fromDate.setDate(fromDate.getDate() - 30);
-      const toDate = new Date(gapDate);
-      toDate.setDate(toDate.getDate() + 10);
-
-      // Convert to Unix timestamps (seconds)
-      const fromTimestamp = Math.floor(fromDate.getTime() / 1000);
-      const toTimestamp = Math.floor(toDate.getTime() / 1000);
-
-      return `${baseUrl}&range=${fromTimestamp}%3A${toTimestamp}`;
-    }
-
-    return baseUrl;
-  }, [symbol, selectedGapDate]);
-
-  const chartUrl = getChartUrl();
+  // TradingView widget URL (for daily chart when no gap selected)
+  const tradingViewUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
 
   // Handle gap click from GapHistory
-  const handleGapClick = useCallback((date: string) => {
+  const handleGapClick = useCallback((date: string, openPrice: number) => {
     setSelectedGapDate(date);
+    setSelectedGapOpenPrice(openPrice);
+  }, []);
+
+  // Clear gap selection to go back to daily chart
+  const clearGapSelection = useCallback(() => {
+    setSelectedGapDate(null);
+    setSelectedGapOpenPrice(0);
   }, []);
 
   const removeTab = (index: number) => {
@@ -217,13 +204,31 @@ export default function TickerPage({ params }: TickerPageProps) {
           {/* Top row: Chart + Gap Statistics */}
           <div className="flex-1 flex min-h-0">
             {/* Chart area */}
-            <div className="flex-1 bg-[#131722] min-w-0">
-              <iframe
-                src={chartUrl}
-                className="w-full h-full border-0"
-                title={`${symbol} chart`}
-                style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
-              />
+            <div className="flex-1 bg-[#131722] min-w-0 relative">
+              {selectedGapDate ? (
+                <>
+                  {/* Back to daily chart button */}
+                  <button
+                    onClick={clearGapSelection}
+                    className="absolute top-2 left-2 z-20 px-2 py-1 bg-[#2a2e39] hover:bg-[#363a45] text-[#d1d4dc] text-xs rounded transition-colors"
+                  >
+                    ← Back to daily
+                  </button>
+                  {/* Custom intraday chart with gap markers */}
+                  <GapDayChart
+                    ticker={symbol.toUpperCase()}
+                    date={selectedGapDate}
+                    gapOpenPrice={selectedGapOpenPrice}
+                  />
+                </>
+              ) : (
+                <iframe
+                  src={tradingViewUrl}
+                  className="w-full h-full border-0"
+                  title={`${symbol} chart`}
+                  style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
+                />
+              )}
             </div>
 
             {/* Resize handle */}
