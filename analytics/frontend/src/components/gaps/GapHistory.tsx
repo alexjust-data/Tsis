@@ -6,15 +6,22 @@ import { fetchGapStats, type GapHistoryItem } from "@/lib/api";
 
 interface GapHistoryProps {
   ticker: string;
+  onGapClick?: (date: string) => void;
 }
 
-export default function GapHistory({ ticker }: GapHistoryProps) {
+export default function GapHistory({ ticker, onGapClick }: GapHistoryProps) {
   const [history, setHistory] = useState<GapHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [dayTab, setDayTab] = useState<"gapday" | "day2">("gapday");
   const [closeDirection, setCloseDirection] = useState<"all" | "green" | "red">("all");
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const handleRowClick = (date: string) => {
+    setSelectedDate(date);
+    onGapClick?.(date);
+  };
 
   useEffect(() => {
     async function loadHistory() {
@@ -176,7 +183,12 @@ export default function GapHistory({ ticker }: GapHistoryProps) {
               filteredHistory.map((item, index) => (
                 <tr
                   key={index}
-                  className="border-b border-[#2a2e39]/50 hover:bg-[#1e222d] transition-colors"
+                  onClick={() => handleRowClick(item.date)}
+                  className={`border-b border-[#2a2e39]/50 cursor-pointer transition-colors ${
+                    selectedDate === item.date
+                      ? 'bg-[#2962ff]/20 hover:bg-[#2962ff]/30'
+                      : 'hover:bg-[#1e222d]'
+                  }`}
                 >
                   <td className="px-3 py-2 text-[#d1d4dc] tabular-nums">{item.date}</td>
                   <td className={`px-3 py-2 text-right tabular-nums ${item.gap_value >= 0 ? "text-[#26a69a]" : "text-[#ef5350]"}`}>

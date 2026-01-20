@@ -24,10 +24,40 @@ export default function TickerPage({ params }: TickerPageProps) {
   const [tickerInfoWidth, setTickerInfoWidth] = useState(400);
   const [isResizingBottom, setIsResizingBottom] = useState(false);
 
+  // Selected gap date for chart navigation
+  const [selectedGapDate, setSelectedGapDate] = useState<string | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // TradingView widget URL
-  const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
+  // Generate chart URL with optional date range
+  const getChartUrl = useCallback(() => {
+    const baseUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
+
+    if (selectedGapDate) {
+      // Parse the date (format: YYYY-MM-DD)
+      const gapDate = new Date(selectedGapDate);
+      // Show 30 days before and 10 days after the gap date
+      const fromDate = new Date(gapDate);
+      fromDate.setDate(fromDate.getDate() - 30);
+      const toDate = new Date(gapDate);
+      toDate.setDate(toDate.getDate() + 10);
+
+      // Convert to Unix timestamps (seconds)
+      const fromTimestamp = Math.floor(fromDate.getTime() / 1000);
+      const toTimestamp = Math.floor(toDate.getTime() / 1000);
+
+      return `${baseUrl}&range=${fromTimestamp}%3A${toTimestamp}`;
+    }
+
+    return baseUrl;
+  }, [symbol, selectedGapDate]);
+
+  const chartUrl = getChartUrl();
+
+  // Handle gap click from GapHistory
+  const handleGapClick = useCallback((date: string) => {
+    setSelectedGapDate(date);
+  }, []);
 
   const removeTab = (index: number) => {
     if (tabs.length > 1) {
@@ -239,7 +269,7 @@ export default function TickerPage({ params }: TickerPageProps) {
 
             {/* Gap History - Spans remaining width */}
             <div className="flex-1 min-w-0">
-              <GapHistory ticker={symbol.toUpperCase()} />
+              <GapHistory ticker={symbol.toUpperCase()} onGapClick={handleGapClick} />
             </div>
           </div>
         </div>
