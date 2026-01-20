@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Filter, Grid } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { TrendingUp, TrendingDown, Filter, Grid, ChevronDown } from "lucide-react";
 import { fetchGapStats, type GapHistoryItem } from "@/lib/api";
 
 interface GapHistoryProps {
@@ -13,6 +13,8 @@ export default function GapHistory({ ticker }: GapHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [dayTab, setDayTab] = useState<"gapday" | "day2">("gapday");
   const [closeDirection, setCloseDirection] = useState<"all" | "green" | "red">("all");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function loadHistory() {
@@ -29,6 +31,17 @@ export default function GapHistory({ ticker }: GapHistoryProps) {
     loadHistory();
   }, [ticker]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const formatPercent = (value: number) => {
     return `${value >= 0 ? "" : ""}${value.toFixed(2)} %`;
   };
@@ -44,8 +57,14 @@ export default function GapHistory({ ticker }: GapHistoryProps) {
     return item.close_direction === closeDirection;
   });
 
+  const getDirectionLabel = () => {
+    if (closeDirection === "all") return "All gaps";
+    if (closeDirection === "green") return "Green only";
+    return "Red only";
+  };
+
   return (
-    <div className="flex-1 flex flex-col bg-[#131722] border-t border-[#2a2e39]">
+    <div className="h-full flex flex-col bg-[#131722]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-[#2a2e39]">
         <div className="flex items-center gap-2">
@@ -71,21 +90,48 @@ export default function GapHistory({ ticker }: GapHistoryProps) {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[#787b86]">Close direction:</span>
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setCloseDirection("all")}
-              className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                closeDirection === "all"
-                  ? "bg-[#2a2e39] text-[#d1d4dc]"
-                  : "text-[#787b86] hover:text-[#d1d4dc]"
-              }`}
-            >
-              <TrendingUp className="h-3 w-3 text-[#26a69a]" />
-              <TrendingDown className="h-3 w-3 text-[#ef5350]" />
-              All gaps
-            </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[#787b86]">Close direction:</span>
+            {/* Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs bg-[#1e222d] border border-[#2a2e39] rounded hover:border-[#363a45] transition-colors"
+              >
+                <TrendingUp className="h-3 w-3 text-[#26a69a]" />
+                <TrendingDown className="h-3 w-3 text-[#ef5350]" />
+                <span className="text-[#d1d4dc]">{getDirectionLabel()}</span>
+                <ChevronDown className={`h-3 w-3 text-[#787b86] transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {dropdownOpen && (
+                <div className="absolute right-0 top-full mt-1 bg-[#1e222d] border border-[#2a2e39] rounded shadow-lg z-50 min-w-[140px]">
+                  <button
+                    onClick={() => { setCloseDirection("all"); setDropdownOpen(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#2a2e39] transition-colors ${closeDirection === "all" ? "text-[#2962ff]" : "text-[#d1d4dc]"}`}
+                  >
+                    <TrendingUp className="h-3 w-3 text-[#26a69a]" />
+                    <TrendingDown className="h-3 w-3 text-[#ef5350]" />
+                    All gaps
+                  </button>
+                  <button
+                    onClick={() => { setCloseDirection("green"); setDropdownOpen(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#2a2e39] transition-colors ${closeDirection === "green" ? "text-[#2962ff]" : "text-[#d1d4dc]"}`}
+                  >
+                    <TrendingUp className="h-3 w-3 text-[#26a69a]" />
+                    Green only
+                  </button>
+                  <button
+                    onClick={() => { setCloseDirection("red"); setDropdownOpen(false); }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#2a2e39] transition-colors ${closeDirection === "red" ? "text-[#2962ff]" : "text-[#d1d4dc]"}`}
+                  >
+                    <TrendingDown className="h-3 w-3 text-[#ef5350]" />
+                    Red only
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <button className="p-1.5 text-[#787b86] hover:text-[#d1d4dc] hover:bg-[#2a2e39] rounded">
             <Filter className="h-4 w-4" />

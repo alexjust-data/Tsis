@@ -17,7 +17,7 @@ export default function TickerPage({ params }: TickerPageProps) {
   const [viewMode, setViewMode] = useState<"overview" | "sec">("overview");
 
   // Resizable panel state
-  const [rightPanelWidth, setRightPanelWidth] = useState(320);
+  const [rightPanelWidth, setRightPanelWidth] = useState(380);
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -41,8 +41,8 @@ export default function TickerPage({ params }: TickerPageProps) {
     const containerRect = containerRef.current.getBoundingClientRect();
     const newWidth = containerRect.right - e.clientX;
 
-    // Constrain between 200px and 600px
-    const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
+    // Constrain between 280px and 600px
+    const constrainedWidth = Math.min(Math.max(newWidth, 280), 600);
     setRightPanelWidth(constrainedWidth);
   }, [isResizing]);
 
@@ -111,10 +111,10 @@ export default function TickerPage({ params }: TickerPageProps) {
             </div>
           ))}
 
-          {/* Search box in header */}
+          {/* Ticker name in header */}
           <div className="ml-auto mr-4 flex items-center gap-2">
             <span className="text-sm text-[#787b86]">{symbol.toUpperCase()}</span>
-            <span className="text-xs text-[#4c5263]">SMX (Security Matters) Publ...</span>
+            <span className="text-xs text-[#4c5263]">Loading...</span>
           </div>
         </div>
 
@@ -142,12 +142,12 @@ export default function TickerPage({ params }: TickerPageProps) {
           </button>
         </div>
 
-        {/* Main grid: Chart + Stats */}
-        <div className="flex-1 flex min-h-0">
-          {/* Chart area */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* TradingView Chart */}
-            <div className="flex-1 bg-[#131722]">
+        {/* Main content area - Two rows */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Top row: Chart + Gap Statistics */}
+          <div className="flex-1 flex min-h-0">
+            {/* Chart area */}
+            <div className="flex-1 bg-[#131722] min-w-0">
               <iframe
                 src={chartUrl}
                 className="w-full h-full border-0"
@@ -156,40 +156,40 @@ export default function TickerPage({ params }: TickerPageProps) {
               />
             </div>
 
-            {/* Bottom panel: Ticker Info + Gap History */}
-            <div className="h-[280px] flex border-t border-[#2a2e39]">
-              {/* Ticker Info */}
-              <div className="w-[400px] border-r border-[#2a2e39]">
-                <TickerInfo
-                  symbol={symbol.toUpperCase()}
-                  companyName="Loading..."
-                  price={0}
-                  change={0}
-                  changePercent={0}
-                />
-              </div>
+            {/* Resize handle */}
+            <div
+              className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
+                isResizing ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
+              }`}
+              onMouseDown={startResizing}
+            />
 
-              {/* Gap History */}
-              <div className="flex-1">
-                <GapHistory ticker={symbol.toUpperCase()} />
-              </div>
+            {/* Right panel: Gap Statistics */}
+            <div
+              className="flex-shrink-0 border-l border-[#2a2e39]"
+              style={{ width: rightPanelWidth }}
+            >
+              <GapStatistics ticker={symbol.toUpperCase()} />
             </div>
           </div>
 
-          {/* Resize handle */}
-          <div
-            className={`w-1 cursor-col-resize transition-colors ${
-              isResizing ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
-            }`}
-            onMouseDown={startResizing}
-          />
+          {/* Bottom row: Ticker Info + Gap History */}
+          <div className="h-[280px] flex border-t border-[#2a2e39]">
+            {/* Ticker Info - Left side */}
+            <div className="w-[400px] border-r border-[#2a2e39] flex-shrink-0">
+              <TickerInfo
+                symbol={symbol.toUpperCase()}
+                companyName="Loading..."
+                price={0}
+                change={0}
+                changePercent={0}
+              />
+            </div>
 
-          {/* Right panel: Gap Statistics */}
-          <div
-            className="border-l border-[#2a2e39] flex-shrink-0"
-            style={{ width: rightPanelWidth }}
-          >
-            <GapStatistics ticker={symbol.toUpperCase()} />
+            {/* Gap History - Spans remaining width */}
+            <div className="flex-1">
+              <GapHistory ticker={symbol.toUpperCase()} />
+            </div>
           </div>
         </div>
       </div>
