@@ -1,11 +1,11 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useCallback, useEffect, useRef } from "react";
 import Sidebar from "@/components/layout/Sidebar";
 import GapStatistics from "@/components/gaps/GapStatistics";
 import GapHistory from "@/components/gaps/GapHistory";
 import TickerInfo from "@/components/ticker/TickerInfo";
-import { X, Star, Search } from "lucide-react";
+import { X, Star } from "lucide-react";
 
 interface TickerPageProps {
   params: Promise<{ symbol: string }>;
@@ -15,6 +15,11 @@ export default function TickerPage({ params }: TickerPageProps) {
   const { symbol } = use(params);
   const [tabs, setTabs] = useState([{ symbol: symbol.toUpperCase(), active: true }]);
   const [viewMode, setViewMode] = useState<"overview" | "sec">("overview");
+
+  // Resizable panel state
+  const [rightPanelWidth, setRightPanelWidth] = useState(320);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // TradingView widget URL
   const chartUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
@@ -29,13 +34,52 @@ export default function TickerPage({ params }: TickerPageProps) {
     }
   };
 
+  // Handle mouse move for resizing
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = containerRect.right - e.clientX;
+
+    // Constrain between 200px and 600px
+    const constrainedWidth = Math.min(Math.max(newWidth, 200), 600);
+    setRightPanelWidth(constrainedWidth);
+  }, [isResizing]);
+
+  // Handle mouse up to stop resizing
+  const handleMouseUp = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, []);
+
+  // Add/remove event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
+
+  // Start resizing
+  const startResizing = () => {
+    setIsResizing(true);
+  };
+
   return (
     <div className="h-screen flex bg-[#0d1117] overflow-hidden">
       {/* Left Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0" ref={containerRef}>
         {/* Top banner */}
         <div className="h-8 bg-[#1e222d] flex items-center justify-between px-4 text-xs border-b border-[#2a2e39]">
           <div className="flex items-center gap-2 text-[#f59e0b]">
@@ -108,6 +152,7 @@ export default function TickerPage({ params }: TickerPageProps) {
                 src={chartUrl}
                 className="w-full h-full border-0"
                 title={`${symbol} chart`}
+                style={{ pointerEvents: isResizing ? 'none' : 'auto' }}
               />
             </div>
 
@@ -131,8 +176,19 @@ export default function TickerPage({ params }: TickerPageProps) {
             </div>
           </div>
 
+          {/* Resize handle */}
+          <div
+            className={`w-1 cursor-col-resize transition-colors ${
+              isResizing ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
+            }`}
+            onMouseDown={startResizing}
+          />
+
           {/* Right panel: Gap Statistics */}
-          <div className="w-[320px] border-l border-[#2a2e39]">
+          <div
+            className="border-l border-[#2a2e39] flex-shrink-0"
+            style={{ width: rightPanelWidth }}
+          >
             <GapStatistics ticker={symbol.toUpperCase()} />
           </div>
         </div>
