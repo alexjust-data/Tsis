@@ -2,9 +2,11 @@
 Parquet Service - Reads data from Cloudflare R2
 
 Provides functions to load OHLCV and other market data from R2 storage.
+Uses in-memory caching to avoid repeated R2 downloads.
 """
 import io
-from typing import Optional, List
+import time
+from typing import Optional, List, Dict, Any
 import pandas as pd
 import pyarrow.parquet as pq
 import boto3
@@ -20,6 +22,42 @@ R2_OHLCV_PREFIX = "ohlcv_intraday_1m"
 
 # S3 client singleton
 _s3_client = None
+
+# ============ CACHING ============
+# Cache for processed daily OHLCV data (ticker -> DataFrame)
+_ticker_cache: Dict[str, pd.DataFrame] = {}
+_cache_timestamps: Dict[str, float] = {}
+CACHE_TTL_SECONDS = 3600  # 1 hour
+
+# Cache for ticker keys (ticker -> list of keys)
+_keys_cache: Dict[str, List[str]] = {}
+_keys_cache_timestamps: Dict[str, float] = {}
+
+# Cache for available tickers
+_available_tickers_cache: Optional[List[str]] = None
+_available_tickers_timestamp: float = 0
+
+
+def _is_cache_valid(ticker: str, cache_timestamps: Dict[str, float]) -> bool:
+    """Check if cache entry is still valid."""
+    if ticker not in cache_timestamps:
+        return False
+    return (time.time() - cache_timestamps[ticker]) < CACHE_TTL_SECONDS
+
+
+def clear_cache(ticker: Optional[str] = None):
+    """Clear cache for a specific ticker or all tickers."""
+    global _ticker_cache, _cache_timestamps, _keys_cache, _keys_cache_timestamps
+    if ticker:
+        _ticker_cache.pop(ticker, None)
+        _cache_timestamps.pop(ticker, None)
+        _keys_cache.pop(ticker, None)
+        _keys_cache_timestamps.pop(ticker, None)
+    else:
+        _ticker_cache.clear()
+        _cache_timestamps.clear()
+        _keys_cache.clear()
+        _keys_cache_timestamps.clear()
 
 
 def get_s3_client():
@@ -51,7 +89,13 @@ def read_parquet_from_r2(key: str) -> pd.DataFrame:
 
 
 def get_available_tickers() -> List[str]:
-    """Get list of all available tickers from OHLCV data in R2."""
+    """Get list of all available tickers from OHLCV data in R2. Cached for 1 hour."""
+    global _available_tickers_cache, _available_tickers_timestamp
+
+    # Check cache
+    if _available_tickers_cache and (time.time() - _available_tickers_timestamp) < CACHE_TTL_SECONDS:
+        return _available_tickers_cache
+
     s3 = get_s3_client()
     tickers = set()
 
@@ -71,11 +115,21 @@ def get_available_tickers() -> List[str]:
         except Exception as e:
             print(f"Error listing tickers for {year_range}: {e}")
 
-    return sorted(list(tickers))
+    result = sorted(list(tickers))
+
+    # Update cache
+    _available_tickers_cache = result
+    _available_tickers_timestamp = time.time()
+
+    return result
 
 
 def get_ticker_ohlcv_keys(ticker: str) -> List[str]:
-    """Get all OHLCV parquet file keys for a ticker in R2."""
+    """Get all OHLCV parquet file keys for a ticker in R2. Cached for 1 hour."""
+    # Check cache
+    if _is_cache_valid(ticker, _keys_cache_timestamps) and ticker in _keys_cache:
+        return _keys_cache[ticker]
+
     s3 = get_s3_client()
     keys = []
 
@@ -91,14 +145,28 @@ def get_ticker_ohlcv_keys(ticker: str) -> List[str]:
         except Exception as e:
             print(f"Error listing files for {ticker}: {e}")
 
-    return sorted(keys)
+    result = sorted(keys)
+
+    # Update cache
+    _keys_cache[ticker] = result
+    _keys_cache_timestamps[ticker] = time.time()
+
+    return result
 
 
 def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.DataFrame:
     """
     Load daily OHLCV data for a ticker by aggregating 1-minute data from R2.
     Returns daily open, high, low, close, volume.
+    Results are cached for 1 hour to avoid repeated R2 downloads.
     """
+    # Check cache first (without limit - we cache full data)
+    if _is_cache_valid(ticker, _cache_timestamps) and ticker in _ticker_cache:
+        cached_df = _ticker_cache[ticker]
+        if limit:
+            return cached_df.tail(limit).reset_index(drop=True)
+        return cached_df.copy()
+
     keys = get_ticker_ohlcv_keys(ticker)
 
     if not keys:
@@ -142,8 +210,12 @@ def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.Data
     result = result.drop_duplicates(subset=['date'])
     result = result.sort_values('date').reset_index(drop=True)
 
+    # Cache the full result (without limit)
+    _ticker_cache[ticker] = result
+    _cache_timestamps[ticker] = time.time()
+
     if limit:
-        result = result.tail(limit)
+        result = result.tail(limit).reset_index(drop=True)
 
     return result
 
