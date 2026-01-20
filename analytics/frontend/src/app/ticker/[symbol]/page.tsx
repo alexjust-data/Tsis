@@ -16,9 +16,14 @@ export default function TickerPage({ params }: TickerPageProps) {
   const [tabs, setTabs] = useState([{ symbol: symbol.toUpperCase(), active: true }]);
   const [viewMode, setViewMode] = useState<"overview" | "sec">("overview");
 
-  // Resizable panel state
+  // Resizable panel state (horizontal - right panel)
   const [rightPanelWidth, setRightPanelWidth] = useState(380);
-  const [isResizing, setIsResizing] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
+
+  // Resizable panel state (horizontal - bottom left panel / Ticker Info)
+  const [tickerInfoWidth, setTickerInfoWidth] = useState(400);
+  const [isResizingBottom, setIsResizingBottom] = useState(false);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   // TradingView widget URL
@@ -34,9 +39,9 @@ export default function TickerPage({ params }: TickerPageProps) {
     }
   };
 
-  // Handle mouse move for resizing
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !containerRef.current) return;
+  // Handle mouse move for right panel resizing
+  const handleMouseMoveRight = useCallback((e: MouseEvent) => {
+    if (!isResizingRight || !containerRef.current) return;
 
     const containerRect = containerRef.current.getBoundingClientRect();
     const newWidth = containerRect.right - e.clientX;
@@ -44,34 +49,69 @@ export default function TickerPage({ params }: TickerPageProps) {
     // Constrain between 280px and 600px
     const constrainedWidth = Math.min(Math.max(newWidth, 280), 600);
     setRightPanelWidth(constrainedWidth);
-  }, [isResizing]);
+  }, [isResizingRight]);
+
+  // Handle mouse move for bottom panel resizing
+  const handleMouseMoveBottom = useCallback((e: MouseEvent) => {
+    if (!isResizingBottom || !containerRef.current) return;
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = e.clientX - containerRect.left - 56; // 56px is sidebar width
+
+    // Constrain between 250px and 600px
+    const constrainedWidth = Math.min(Math.max(newWidth, 250), 600);
+    setTickerInfoWidth(constrainedWidth);
+  }, [isResizingBottom]);
 
   // Handle mouse up to stop resizing
   const handleMouseUp = useCallback(() => {
-    setIsResizing(false);
+    setIsResizingRight(false);
+    setIsResizingBottom(false);
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }, []);
 
-  // Add/remove event listeners
+  // Add/remove event listeners for right panel
   useEffect(() => {
-    if (isResizing) {
-      document.addEventListener('mousemove', handleMouseMove);
+    if (isResizingRight) {
+      document.addEventListener('mousemove', handleMouseMoveRight);
       document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
     }
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mousemove', handleMouseMoveRight);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isResizing, handleMouseMove, handleMouseUp]);
+  }, [isResizingRight, handleMouseMoveRight, handleMouseUp]);
 
-  // Start resizing
-  const startResizing = () => {
-    setIsResizing(true);
+  // Add/remove event listeners for bottom panel
+  useEffect(() => {
+    if (isResizingBottom) {
+      document.addEventListener('mousemove', handleMouseMoveBottom);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMoveBottom);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingBottom, handleMouseMoveBottom, handleMouseUp]);
+
+  // Start resizing right panel
+  const startResizingRight = () => {
+    setIsResizingRight(true);
   };
+
+  // Start resizing bottom panel
+  const startResizingBottom = () => {
+    setIsResizingBottom(true);
+  };
+
+  const isResizing = isResizingRight || isResizingBottom;
 
   return (
     <div className="h-screen flex bg-[#0d1117] overflow-hidden">
@@ -159,9 +199,9 @@ export default function TickerPage({ params }: TickerPageProps) {
             {/* Resize handle */}
             <div
               className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
-                isResizing ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
+                isResizingRight ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
               }`}
-              onMouseDown={startResizing}
+              onMouseDown={startResizingRight}
             />
 
             {/* Right panel: Gap Statistics */}
@@ -176,7 +216,10 @@ export default function TickerPage({ params }: TickerPageProps) {
           {/* Bottom row: Ticker Info + Gap History */}
           <div className="h-[280px] flex border-t border-[#2a2e39]">
             {/* Ticker Info - Left side */}
-            <div className="w-[400px] border-r border-[#2a2e39] flex-shrink-0">
+            <div
+              className="border-r border-[#2a2e39] flex-shrink-0"
+              style={{ width: tickerInfoWidth }}
+            >
               <TickerInfo
                 symbol={symbol.toUpperCase()}
                 companyName="Loading..."
@@ -186,8 +229,16 @@ export default function TickerPage({ params }: TickerPageProps) {
               />
             </div>
 
+            {/* Resize handle for bottom row */}
+            <div
+              className={`w-1 cursor-col-resize transition-colors flex-shrink-0 ${
+                isResizingBottom ? 'bg-[#2962ff]' : 'bg-[#2a2e39] hover:bg-[#2962ff]'
+              }`}
+              onMouseDown={startResizingBottom}
+            />
+
             {/* Gap History - Spans remaining width */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <GapHistory ticker={symbol.toUpperCase()} />
             </div>
           </div>
