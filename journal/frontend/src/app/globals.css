@@ -1,0 +1,360 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* TradingView Dark Theme - Design System */
+
+    /* Core Backgrounds */
+    --background: 210 17% 5%;         /* #0d1117 - Main background */
+    --background-dark: 220 18% 10%;   /* #131722 - Card/Panel background */
+    --background-secondary: 220 14% 12%; /* #181c25 - Secondary background */
+    --foreground: 0 0% 100%;          /* white - Primary text */
+
+    /* Card/Panel */
+    --card: 220 18% 10%;              /* #131722 - Card background */
+    --card-foreground: 0 0% 100%;
+
+    /* Popover */
+    --popover: 220 18% 10%;
+    --popover-foreground: 0 0% 100%;
+
+    /* Primary (TradingView Blue) */
+    --primary: 224 100% 58%;          /* #2962ff - TradingView blue */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 220 14% 17%;         /* #232830 */
+    --secondary-foreground: 0 0% 100%;
+
+    /* Muted Text Colors */
+    --muted: 220 14% 17%;
+    --muted-foreground: 220 9% 55%;   /* #787b86 - Muted text */
+    --muted-2: 220 10% 70%;           /* #a3a8b5 - Secondary muted */
+    --muted-3: 220 12% 84%;           /* #d1d4dc - Lighter muted */
+
+    /* Accent */
+    --accent: 224 100% 58%;           /* #2962ff */
+    --accent-foreground: 0 0% 100%;
+
+    /* Success/Positive (TradingView Teal) */
+    --success: 168 76% 41%;           /* #26a69a - TradingView teal/green */
+    --success-foreground: 0 0% 100%;
+    --success-light: 168 76% 50%;     /* #2dc9a3 - Brighter teal */
+    --success-bg: 168 40% 15%;        /* Dark teal bg */
+
+    /* Destructive/Negative (Red) */
+    --destructive: 0 76% 52%;         /* #ef5350 - TradingView red */
+    --destructive-foreground: 0 0% 100%;
+    --danger-light: 0 76% 60%;        /* #f57573 - Brighter red */
+    --danger-bg: 0 40% 15%;           /* Dark red bg */
+
+    /* Warning (Orange) */
+    --warning: 36 100% 50%;           /* #ff9800 */
+    --warning-foreground: 0 0% 10%;
+
+    /* Borders */
+    --border: 220 14% 19%;            /* #2a2e39 - Primary border */
+    --border-secondary: 220 14% 24%;  /* #353a47 - Secondary border */
+    --border-accent: 220 14% 35%;     /* #4c5366 - Accent border */
+    --input: 220 14% 19%;
+    --ring: 224 100% 58%;
+
+    /* Gray Scale (TradingView) */
+    --gray-50: 0 0% 100%;             /* white */
+    --gray-100: 220 12% 84%;          /* #d1d4dc */
+    --gray-200: 220 10% 70%;          /* #a3a8b5 */
+    --gray-300: 220 9% 55%;           /* #787b86 */
+    --gray-400: 220 10% 45%;          /* #636872 */
+    --gray-500: 220 14% 35%;          /* #4c5366 */
+    --gray-600: 220 14% 24%;          /* #353a47 */
+    --gray-700: 220 14% 19%;          /* #2a2e39 */
+    --gray-800: 220 18% 10%;          /* #131722 */
+    --gray-900: 210 17% 5%;           /* #0d1117 */
+
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    background-color: #0d1117;
+    color: #ffffff;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Typography */
+  h1 { @apply text-2xl font-bold text-white; }
+  h2 { @apply text-xl font-semibold text-white; }
+  h3 { @apply text-lg font-semibold text-white; }
+  h4 { @apply text-base font-medium text-white; }
+
+  /* Links - TradingView blue */
+  a {
+    color: #2962ff;
+  }
+  a:hover {
+    color: #5b8def;
+  }
+
+  /* Focus states */
+  :focus-visible {
+    outline: 2px solid #2962ff;
+    outline-offset: 2px;
+  }
+
+  /* Scrollbar styling for TradingView dark theme */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #0d1117;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #2a2e39;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #353a47;
+  }
+
+  /* Selection */
+  ::selection {
+    background: rgba(41, 98, 255, 0.3);
+    color: #ffffff;
+  }
+}
+
+/* TradingView Components */
+@layer components {
+  /* TradingView Card/Panel */
+  .tv-card {
+    @apply bg-[#131722] rounded-lg border border-[#2a2e39];
+  }
+
+  /* TradingView Button */
+  .tv-button {
+    @apply px-4 py-2 rounded font-medium text-sm transition-colors;
+    @apply bg-[#2a2e39] text-white hover:bg-[#353a47];
+  }
+
+  .tv-button-primary {
+    @apply bg-[#2962ff] text-white hover:bg-[#2962ff]/90;
+  }
+
+  .tv-button-success {
+    @apply bg-[#26a69a] text-white hover:bg-[#26a69a]/90;
+  }
+
+  .tv-button-danger {
+    @apply bg-[#ef5350] text-white hover:bg-[#ef5350]/90;
+  }
+
+  .tv-button-outline {
+    @apply bg-transparent border border-[#2962ff] text-[#2962ff] hover:bg-[#2962ff]/10;
+  }
+
+  /* TradingView Input */
+  .tv-input {
+    @apply w-full h-10 px-3 rounded text-sm transition-colors;
+    @apply bg-[#131722] border border-[#2a2e39] text-white;
+    @apply placeholder-[#787b86];
+    @apply focus:outline-none focus:border-[#2962ff];
+  }
+
+  /* TradingView Select */
+  .tv-select {
+    @apply w-full h-10 px-3 rounded text-sm transition-colors cursor-pointer;
+    @apply bg-[#131722] border border-[#2a2e39] text-white;
+    @apply focus:outline-none focus:border-[#2962ff];
+    @apply appearance-none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23787b86' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  /* TradingView Table */
+  .tv-table {
+    @apply w-full border-collapse;
+  }
+
+  .tv-table thead {
+    @apply bg-[#181c25];
+  }
+
+  .tv-table th {
+    @apply px-3 py-2 text-left text-xs font-semibold text-[#787b86] uppercase tracking-wide;
+    @apply border-b border-[#2a2e39];
+  }
+
+  .tv-table td {
+    @apply px-3 py-2.5 text-sm text-white;
+    @apply border-b border-[#2a2e39];
+  }
+
+  .tv-table tbody tr {
+    @apply transition-colors;
+  }
+
+  .tv-table tbody tr:hover {
+    @apply bg-[#181c25];
+  }
+
+  /* TradingView Badge */
+  .tv-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .tv-badge-success {
+    @apply bg-[#26a69a]/20 text-[#26a69a];
+  }
+
+  .tv-badge-danger {
+    @apply bg-[#ef5350]/20 text-[#ef5350];
+  }
+
+  .tv-badge-warning {
+    @apply bg-[#ff9800]/20 text-[#ff9800];
+  }
+
+  .tv-badge-info {
+    @apply bg-[#2962ff]/20 text-[#2962ff];
+  }
+
+  .tv-badge-neutral {
+    @apply bg-[#2a2e39] text-[#d1d4dc];
+  }
+
+  /* TradingView Tab */
+  .tv-tab {
+    @apply px-3 py-2 text-sm font-medium transition-colors cursor-pointer;
+    @apply text-[#787b86] hover:text-white;
+    @apply border-b-2 border-transparent;
+  }
+
+  .tv-tab.is-active {
+    @apply text-[#2962ff] border-[#2962ff];
+  }
+
+  /* TradingView Label */
+  .tv-label {
+    @apply block text-xs font-medium text-[#787b86] uppercase tracking-wide mb-1.5;
+  }
+}
+
+/* TradingView utility classes */
+@layer utilities {
+  /* Text Colors */
+  .text-profit {
+    color: #26a69a;
+  }
+
+  .text-loss {
+    color: #ef5350;
+  }
+
+  .text-muted {
+    color: #787b86;
+  }
+
+  .text-muted-2 {
+    color: #a3a8b5;
+  }
+
+  .text-muted-3 {
+    color: #d1d4dc;
+  }
+
+  .text-link {
+    color: #2962ff;
+  }
+
+  /* Background Colors */
+  .bg-profit {
+    background-color: #26a69a;
+  }
+
+  .bg-loss {
+    background-color: #ef5350;
+  }
+
+  .bg-profit-subtle {
+    background-color: rgba(38, 166, 154, 0.15);
+  }
+
+  .bg-loss-subtle {
+    background-color: rgba(239, 83, 80, 0.15);
+  }
+
+  /* TradingView gray backgrounds */
+  .bg-tv-primary {
+    background-color: #0d1117;
+  }
+
+  .bg-tv-card {
+    background-color: #131722;
+  }
+
+  .bg-tv-secondary {
+    background-color: #181c25;
+  }
+
+  .bg-tv-border {
+    background-color: #2a2e39;
+  }
+
+  /* Border colors */
+  .border-tv-primary {
+    border-color: #2a2e39;
+  }
+
+  .border-tv-secondary {
+    border-color: #353a47;
+  }
+
+  /* Text size - extra small */
+  .text-2xs {
+    font-size: 0.625rem;
+    line-height: 0.875rem;
+  }
+
+  /* TradingView status dots */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-success {
+    @apply bg-[#26a69a];
+  }
+
+  .status-dot-danger {
+    @apply bg-[#ef5350];
+  }
+
+  .status-dot-warning {
+    @apply bg-[#ff9800];
+  }
+
+  /* Number formatting */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
