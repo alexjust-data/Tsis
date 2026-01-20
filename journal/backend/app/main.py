@@ -30,6 +30,8 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "https://tsis.ai",
         "https://www.tsis.ai",
+        "https://journal.tsis.ai",
+        "https://www.journal.tsis.ai",
         "https://tsis-zeta.vercel.app",
     ],
     allow_credentials=True,
