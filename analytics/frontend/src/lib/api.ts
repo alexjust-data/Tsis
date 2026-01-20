@@ -19,15 +19,27 @@ export interface GapHistoryItem {
 }
 
 export interface GapDayStats {
+  avg_volume: string;
+  avg_dollar_volume: string;
+  avg_premarket_volume: string;
   avg_market_cap: string;
-  avg_high_spike: number;
-  avg_low_spike: number;
-  avg_return: number;
-  avg_change: number;
-  avg_range: number;
   avg_hod_time: string;
   avg_lod_time: string;
+  avg_premarket_high_time: string;
+  avg_premarket_low_time: string;
+  avg_premarket_high_fade: number;
   avg_close_red: number;
+  avg_gap_value: number;
+  avg_high_spike: number;
+  avg_low_spike: number;
+  avg_range: number;
+  avg_return: number;
+  avg_change: number;
+  avg_high_gap: number;
+  avg_high_fade: number;
+  avg_high_to_pmh_change: number;
+  avg_close_to_pmh_change: number;
+  avg_premarket_high_gap: number;
 }
 
 export interface GapStats {
