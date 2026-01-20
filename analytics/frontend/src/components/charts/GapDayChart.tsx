@@ -9,14 +9,16 @@ interface GapDayChartProps {
   ticker: string;
   date: string | null;
   gapOpenPrice?: number;
+  onNoData?: () => void; // Called when no intraday data available
 }
 
-export default function GapDayChart({ ticker, date, gapOpenPrice }: GapDayChartProps) {
+export default function GapDayChart({ ticker, date, gapOpenPrice, onNoData }: GapDayChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick", Time, CandlestickData<Time>, CandlestickSeriesOptions> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noData, setNoData] = useState(false);
 
   // Initialize chart
   useEffect(() => {
@@ -165,9 +167,10 @@ export default function GapDayChart({ ticker, date, gapOpenPrice }: GapDayChartP
       } catch (err) {
         console.error("Failed to load intraday data:", err);
         const errorMsg = err instanceof Error ? err.message : "Failed to load data";
-        // Check if it's a network error or API error
-        if (errorMsg.includes("404")) {
-          setError(`No intraday data available for ${date}`);
+        // Check if it's a 404 (no data) - trigger fallback to TradingView
+        if (errorMsg.includes("404") || errorMsg.includes("No intraday data")) {
+          setNoData(true);
+          onNoData?.();
         } else if (errorMsg.includes("Failed to fetch")) {
           setError("Cannot connect to server. Is the backend running?");
         } else {
