@@ -64,14 +64,14 @@ export default function Sidebar() {
     >
       {/* Logo + Toggle */}
       <div className="h-14 flex items-center justify-between px-4 border-b border-[#2a2e39]">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
+        <a href="https://tsis.ai" className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-md bg-gradient-to-br from-[#2962ff] to-[#2962ff]/70 flex items-center justify-center shrink-0 shadow-lg shadow-[#2962ff]/20">
             <span className="text-white font-bold text-sm">T</span>
           </div>
           {!collapsed && (
             <span className="text-white font-semibold text-lg whitespace-nowrap tracking-tight">TSIS<span className="text-[#2962ff]">.ai</span></span>
           )}
-        </Link>
+        </a>
         <button
           onClick={toggleCollapsed}
           className="w-7 h-7 rounded-md bg-[#1e222d] hover:bg-[#2a2e39] flex items-center justify-center text-[#787b86] hover:text-white transition-colors shrink-0 border border-[#2a2e39]"

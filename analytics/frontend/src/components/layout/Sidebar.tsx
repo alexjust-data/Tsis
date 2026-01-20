@@ -62,9 +62,9 @@ export default function Sidebar() {
     <aside className="w-[52px] bg-[#131722] border-r border-[#2a2e39] flex flex-col h-full">
       {/* Logo */}
       <div className="h-12 flex items-center justify-center border-b border-[#2a2e39]">
-        <Link href="/" className="text-[#2962ff]">
+        <a href="https://tsis.ai" className="text-[#2962ff]">
           <Zap className="h-6 w-6" />
-        </Link>
+        </a>
       </div>
 
       {/* Main navigation icons */}
