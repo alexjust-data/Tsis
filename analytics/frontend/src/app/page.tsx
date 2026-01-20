@@ -7,8 +7,8 @@ export default function Home() {
   const router = useRouter();
 
   useEffect(() => {
-    // Redirect to default ticker or show search
-    router.push("/ticker/SMX");
+    // Redirect to default ticker with gap data
+    router.push("/ticker/ABUS");
   }, [router]);
 
   return (
