@@ -79,7 +79,7 @@ export default function Header() {
   }, [showUserMenu]);
 
   return (
-    <header className="bg-[#0d1117] border-b border-[#2a2e39]">
+    <header className="bg-[#0d1117]">
       {/* Top Row - Logo, Search, User */}
       <div className="h-14 flex items-center justify-between px-6">
         {/* Logo */}
@@ -204,11 +204,12 @@ export default function Header() {
       </div>
 
       {/* Bottom Row - Navigation Tabs */}
-      <div className="relative px-6" ref={navRef}>
+      <div className="relative px-6 border-b border-[#2a2e39]" ref={navRef}>
         <nav className="flex items-center gap-1">
           {NAV_ITEMS.map((item, index) => {
             const isActive = pathname === item.href ||
               (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+            const isHovered = hoveredIndex === index;
 
             return (
               <Link
@@ -217,10 +218,12 @@ export default function Header() {
                 ref={(el) => { itemRefs.current[index] = el; }}
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                className={`relative px-3 py-2.5 text-[13px] font-medium transition-colors rounded-md ${
+                className={`relative px-4 py-2.5 text-[13px] font-medium transition-all duration-200 ${
                   isActive
-                    ? 'text-white'
-                    : 'text-[#787b86] hover:text-white hover:bg-[#1e222d]'
+                    ? 'text-white bg-[#1e222d] rounded-t-lg -mb-[1px] pb-[calc(0.625rem+1px)]'
+                    : isHovered
+                      ? 'text-white bg-[#1e222d]/60 rounded-t-lg'
+                      : 'text-[#787b86] hover:text-white rounded-t-lg'
                 }`}
               >
                 {item.label}
@@ -234,14 +237,17 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Active Indicator Line */}
-        <div
-          className="absolute bottom-0 h-0.5 bg-[#2962ff] transition-all duration-200 ease-out"
-          style={{
-            left: indicatorStyle.left,
-            width: indicatorStyle.width,
-          }}
-        />
+        {/* Active/Hover Indicator Line - only shows on hover for non-active tabs */}
+        {hoveredIndex !== null && !(pathname === NAV_ITEMS[hoveredIndex]?.href ||
+          (NAV_ITEMS[hoveredIndex]?.href !== '/dashboard' && pathname?.startsWith(NAV_ITEMS[hoveredIndex]?.href))) && (
+          <div
+            className="absolute bottom-0 h-0.5 bg-[#2962ff] transition-all duration-200 ease-out"
+            style={{
+              left: indicatorStyle.left,
+              width: indicatorStyle.width,
+            }}
+          />
+        )}
       </div>
     </header>
   );

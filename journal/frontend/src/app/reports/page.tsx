@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useRef } from "react";
 import { useAuthStore } from "@/lib/auth";
 import { reportsApi, tradesApi, type DetailedStats, type DaysTimesData, type DayStats, type HourStats, type MonthStats, type DurationStats, type PriceVolumeData, type PriceRangeStats, type VolumeRangeStats } from "@/lib/api";
+import AppLayout from "@/components/layout/AppLayout";
 import {
   CalendarDays,
   Check,
@@ -638,6 +639,7 @@ export default function ReportsPage() {
   ];
 
   return (
+    <AppLayout>
     <div className="p-6">
       {/* Top row */}
       <div className="flex items-start justify-between gap-4">
@@ -970,5 +972,6 @@ export default function ReportsPage() {
         </button>
       </div>
     </div>
+    </AppLayout>
   );
 }

@@ -13,12 +13,14 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   error: string | null;
+  _hasHydrated: boolean;
 
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => void;
   fetchUser: () => Promise<void>;
   clearError: () => void;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -28,6 +30,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoading: false,
       error: null,
+      _hasHydrated: false,
+
+      setHasHydrated: (state: boolean) => {
+        set({ _hasHydrated: state });
+      },
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
@@ -83,6 +90,9 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "tsis-auth",
       partialize: (state) => ({ token: state.token }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
