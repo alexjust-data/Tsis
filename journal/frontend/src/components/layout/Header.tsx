@@ -219,7 +219,7 @@ export default function Header() {
       </div>
 
       {/* Second Row - Navigation Tabs (separate from header) */}
-      <div className="max-w-[1400px] mx-auto px-6">
+      <div className="max-w-[1400px] mx-auto px-6 mt-2">
         <div className="relative border-b border-[#2a2e39]" ref={navRef}>
           <nav className="flex items-center gap-1">
             {NAV_ITEMS.map((item, index) => {
