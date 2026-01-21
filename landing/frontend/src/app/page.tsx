@@ -47,6 +47,16 @@ const styleSheet = `
     51%, 100% { opacity: 0; }
   }
 
+  @keyframes loadingProgress {
+    0% { width: 0%; }
+    10% { width: 15%; }
+    30% { width: 40%; }
+    50% { width: 60%; }
+    70% { width: 80%; }
+    90% { width: 95%; }
+    100% { width: 100%; }
+  }
+
   .cursor-blink {
     animation: blink 0.8s step-end infinite;
   }
@@ -73,6 +83,10 @@ const styleSheet = `
   .card-back {
     transform: rotateY(180deg);
   }
+
+  .loading-bar {
+    animation: loadingProgress 1s ease-out forwards;
+  }
 `;
 
 function FeatureCard({
@@ -97,6 +111,7 @@ function FeatureCard({
   const [isHovered, setIsHovered] = useState(false);
   const [displayedText, setDisplayedText] = useState("");
   const [showCursor, setShowCursor] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
   const cursorRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -119,7 +134,7 @@ function FeatureCard({
             }, 2000);
           }
         }, 50);
-      }, 400); // Wait for flip animation
+      }, 400);
 
       return () => {
         clearTimeout(startDelay);
@@ -131,29 +146,24 @@ function FeatureCard({
       if (cursorRef.current) clearTimeout(cursorRef.current);
       setDisplayedText("");
       setShowCursor(false);
+      setIsLoading(false);
     }
   }, [isHovered, techTitle]);
 
-  // Brushed platinum gradient (Mac OS 9 Sherlock style)
-  const brushedPlatinumBg = `
-    linear-gradient(
-      180deg,
-      #c8ccd4 0%,
-      #b8bcc4 15%,
-      #a8acb4 30%,
-      #b8bcc4 50%,
-      #a8acb4 70%,
-      #98a0a8 85%,
-      #888c94 100%
-    )
-  `;
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setTimeout(() => {
+      window.location.href = href;
+    }, 1100);
+  };
 
   return (
-    <a
-      href={href}
-      className="card-flip block h-[200px]"
+    <div
+      className="card-flip block h-[220px] cursor-pointer"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onClick={handleClick}
     >
       <div className="card-flip-inner relative w-full h-full">
         {/* Front - Original dark design */}
@@ -166,104 +176,177 @@ function FeatureCard({
           <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
         </div>
 
-        {/* Back - Mac OS 9 Sherlock platinum style */}
+        {/* Back - Mac OS 9 Sherlock exact style */}
         <div
-          className="card-back absolute inset-0 rounded-lg p-4 flex flex-col"
+          className="card-back absolute inset-0 rounded-lg p-3 flex flex-col"
           style={{
-            background: brushedPlatinumBg,
+            /* Exact Sherlock 2 brushed aluminum background */
+            background: `linear-gradient(180deg,
+              #d4d8e0 0%,
+              #c8ccd4 20%,
+              #bcc0c8 40%,
+              #c4c8d0 60%,
+              #b8bcc4 80%,
+              #aeb2ba 100%
+            )`,
+            /* Outer border like Sherlock window */
             boxShadow: `
-              inset 0 1px 0 rgba(255, 255, 255, 0.6),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-              0 4px 12px rgba(0, 0, 0, 0.3)
+              inset 0 0 0 1px #888,
+              inset 1px 1px 0 rgba(255, 255, 255, 0.5),
+              inset -1px -1px 0 rgba(0, 0, 0, 0.15),
+              0 2px 8px rgba(0, 0, 0, 0.2)
             `,
           }}
         >
-          {/* Horizontal brushed lines texture */}
+          {/* Horizontal brushed metal lines texture */}
           <div
-            className="absolute inset-0 rounded-lg pointer-events-none opacity-40"
+            className="absolute inset-0 rounded-lg pointer-events-none"
             style={{
               background: `repeating-linear-gradient(
                 0deg,
-                transparent,
-                transparent 1px,
-                rgba(255, 255, 255, 0.3) 1px,
-                rgba(255, 255, 255, 0.3) 2px
+                transparent 0px,
+                transparent 2px,
+                rgba(255, 255, 255, 0.15) 2px,
+                rgba(255, 255, 255, 0.15) 3px
               )`,
+              opacity: 0.5,
             }}
           />
 
-          {/* Inner bevel/groove effect */}
+          {/* Content area with inset border - like Sherlock icon containers */}
           <div
-            className="absolute inset-[3px] rounded-md pointer-events-none"
+            className="relative flex-1 rounded-md p-3 mb-3"
             style={{
+              /* Inner content box like the icon areas in Sherlock */
+              background: `linear-gradient(180deg,
+                #e8ecf0 0%,
+                #f4f6f8 30%,
+                #ffffff 50%,
+                #f4f6f8 70%,
+                #e8ecf0 100%
+              )`,
               boxShadow: `
-                inset 1px 1px 2px rgba(0, 0, 0, 0.15),
-                inset -1px -1px 1px rgba(255, 255, 255, 0.5)
+                inset 1px 1px 3px rgba(0, 0, 0, 0.2),
+                inset -1px -1px 1px rgba(255, 255, 255, 0.8),
+                0 1px 0 rgba(255, 255, 255, 0.5)
               `,
+              border: '1px solid #999',
             }}
-          />
+          >
+            {/* Vertical stripes texture inside content box - like Sherlock empty slots */}
+            <div
+              className="absolute inset-[1px] rounded pointer-events-none"
+              style={{
+                background: `repeating-linear-gradient(
+                  90deg,
+                  transparent 0px,
+                  transparent 3px,
+                  rgba(200, 204, 210, 0.3) 3px,
+                  rgba(200, 204, 210, 0.3) 4px
+                )`,
+              }}
+            />
 
-          {/* Content */}
-          <div className="relative flex flex-col h-full">
-            {/* Tech Title with Typewriter */}
-            <div className="mb-3">
+            {/* Text content */}
+            <div className="relative">
+              {/* Tech Title with Typewriter */}
               <h4
-                className="font-bold text-[14px] tracking-tight"
+                className="font-bold text-[14px] mb-3"
                 style={{
                   color: '#1a1a1a',
-                  fontFamily: '"SF Mono", "Monaco", "Consolas", monospace',
-                  textShadow: '0 1px 0 rgba(255, 255, 255, 0.5)',
+                  fontFamily: 'Monaco, "Lucida Console", monospace',
+                  textShadow: '0 1px 0 rgba(255, 255, 255, 0.7)',
                 }}
               >
                 {isHovered ? displayedText : techTitle}
                 {showCursor && (
-                  <span
-                    className="cursor-blink ml-0.5 inline-block"
-                    style={{ color: '#1a1a1a' }}
-                  >
-                    _
-                  </span>
+                  <span className="cursor-blink ml-0.5" style={{ color: '#1a1a1a' }}>_</span>
                 )}
               </h4>
-            </div>
 
-            {/* Description */}
-            <p
-              className="text-[12px] leading-relaxed flex-1"
-              style={{
-                color: '#3a3a3a',
-                fontFamily: '-apple-system, "Lucida Grande", sans-serif',
-              }}
-            >
-              {techDescription}
-            </p>
-
-            {/* Explorar Button - Mac OS 9 style */}
-            <div className="mt-auto">
-              <span
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all"
+              {/* Description */}
+              <p
+                className="text-[11px] leading-relaxed"
                 style={{
-                  background: 'linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 50%, #c0c0c0 100%)',
-                  boxShadow: `
-                    0 1px 2px rgba(0, 0, 0, 0.2),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-                    inset 0 -1px 0 rgba(0, 0, 0, 0.1)
-                  `,
-                  border: '1px solid #888',
-                  color: '#1a1a1a',
-                  fontFamily: '-apple-system, "Lucida Grande", sans-serif',
+                  color: '#333',
+                  fontFamily: '"Lucida Grande", "Geneva", sans-serif',
                 }}
               >
-                Explorar
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </span>
+                {techDescription}
+              </p>
             </div>
           </div>
+
+          {/* Bottom area with centered button */}
+          <div className="relative flex justify-center">
+            {/* Explorar Button - exact Mac OS 9 style like Edit... button */}
+            <button
+              className="relative px-6 py-1.5 text-[12px] font-medium rounded-[4px]"
+              style={{
+                background: `linear-gradient(180deg,
+                  #fafafa 0%,
+                  #e8e8e8 45%,
+                  #d8d8d8 55%,
+                  #c8c8c8 100%
+                )`,
+                boxShadow: `
+                  0 1px 2px rgba(0, 0, 0, 0.25),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.9),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.05)
+                `,
+                border: '1px solid #666',
+                color: '#000',
+                fontFamily: '"Lucida Grande", "Geneva", sans-serif',
+              }}
+            >
+              <span className="flex items-center gap-1">
+                Explorar
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
+            </button>
+          </div>
+
+          {/* Vintage Blue Loading Bar - appears at bottom when loading */}
+          {isLoading && (
+            <div
+              className="absolute bottom-0 left-0 right-0 h-[6px] rounded-b-lg overflow-hidden"
+              style={{
+                background: '#888',
+                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.3)',
+              }}
+            >
+              {/* Track groove */}
+              <div
+                className="absolute inset-[1px] rounded-sm overflow-hidden"
+                style={{
+                  background: `linear-gradient(180deg, #666 0%, #888 50%, #999 100%)`,
+                }}
+              >
+                {/* Blue progress bar */}
+                <div
+                  className="h-full loading-bar"
+                  style={{
+                    background: `linear-gradient(180deg,
+                      #6699ff 0%,
+                      #3366cc 30%,
+                      #0033aa 50%,
+                      #3366cc 70%,
+                      #6699ff 100%
+                    )`,
+                    boxShadow: `
+                      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                      inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                    `,
+                  }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </a>
+    </div>
   );
 }
 
