@@ -88,7 +88,7 @@ export default function Header() {
           <span className="text-white font-bold text-xl tracking-tight">
             TSIS<span className="text-white">.ai</span>
           </span>
-          <span className="text-[#787b86] text-sm">to SmallCaps Trading</span>
+          <span className="text-[#787b86] text-sm">SmallCaps Trading</span>
         </a>
 
         {/* Right Side - Actions */}

@@ -113,11 +113,11 @@ export default function Home() {
     <main className="min-h-screen bg-[#0d1117]">
       <header>
         <div className="max-w-[1200px] mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-baseline gap-2">
+          <div className="flex items-baseline gap-2 ml-4">
             <span className="text-white font-bold text-xl tracking-tight">
               TSIS<span className="text-white">.ai</span>
             </span>
-            <span className="text-[#787b86] text-sm">to SmallCaps Trading</span>
+            <span className="text-[#787b86] text-sm">SmallCaps Trading</span>
           </div>
           <div className="flex items-center gap-3">
             <a
