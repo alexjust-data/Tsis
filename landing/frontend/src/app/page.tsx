@@ -142,8 +142,12 @@ function FeatureCard({
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
-      {/* Front - Original dark design */}
-      <div className="absolute inset-0 bg-[#131722] border border-[#2a2e39] rounded-lg p-4">
+      {/* Front - Original dark design - slides UP and OUT when hovered */}
+      <div
+        className={`absolute inset-0 bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-transform duration-500 ease-out ${
+          isHovered ? '-translate-y-full' : 'translate-y-0'
+        }`}
+      >
         <div className="flex items-center gap-2 mb-3">
           <Icon className="h-5 w-5" style={{ color }} />
           <h3 className="text-white font-semibold text-sm">{title}</h3>
@@ -152,7 +156,7 @@ function FeatureCard({
         <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
       </div>
 
-      {/* Back - Slides up from bottom */}
+      {/* Back - Slides up from bottom pushing the front */}
       <div
         className={`absolute inset-0 rounded-lg p-3 flex flex-col transition-transform duration-500 ease-out ${
           isHovered ? 'translate-y-0' : 'translate-y-full'
