@@ -642,11 +642,7 @@ export default function ReportsPage() {
     <AppLayout>
     <div className="p-6">
       {/* Top row */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[34px] leading-none font-semibold tracking-tight">Reports</h1>
-        </div>
-
+      <div className="flex justify-end mb-4">
         <button className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-[13px] text-white/80 hover:text-white hover:border-white/20 transition-colors flex items-center gap-2">
           Custom Filters
           <ChevronDown className="h-4 w-4" />

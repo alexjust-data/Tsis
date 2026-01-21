@@ -27,7 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/reports', label: 'Reports' },
   { href: '/trades', label: 'Trades' },
   { href: '/journal', label: 'Journal' },
-  { href: '/calculator', label: 'Risk Calculator' },
+  { href: '/calculator', label: 'Risk Management' },
 ];
 
 export default function Header() {
@@ -123,14 +123,14 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Risk Calculator Button */}
+          {/* Risk Management Button */}
           <button
             onClick={toggleModal}
             className="flex items-center gap-1.5 px-2.5 py-1.5 text-[13px] text-[#787b86] hover:text-white hover:bg-[#1e222d] rounded transition-colors"
-            title="Risk Calculator (F2)"
+            title="Risk Management (F2)"
           >
             <Calculator className="h-4 w-4" />
-            <span className="hidden sm:inline">Risk Calculator</span>
+            <span className="hidden sm:inline">Risk Management</span>
           </button>
 
           {/* Import Button */}

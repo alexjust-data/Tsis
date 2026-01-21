@@ -145,22 +145,16 @@ export default function TradesPage() {
   return (
     <AppLayout>
       <div className="p-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-[#f3f3f5]">Trades</h1>
-            <p className="text-[13px] text-[#d1d4dc] mt-1">View and manage your trade history</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={loadTrades}
-              disabled={isLoading}
-              className="fv-button flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
-          </div>
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-4">
+          <button
+            onClick={loadTrades}
+            disabled={isLoading}
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#131722] border border-[#2a2e39] rounded text-[13px] text-[#787b86] hover:text-white hover:border-[#787b86] transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         {/* Import Section */}

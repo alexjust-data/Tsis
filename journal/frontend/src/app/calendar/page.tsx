@@ -228,18 +228,12 @@ export default function CalendarPage() {
   return (
     <AppLayout>
       <div className="p-6">
-        {/* Page Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Calendar</h1>
-            <p className="text-[13px] text-[#787b86] mt-1">
-              Track your daily trading performance across the year
-            </p>
-          </div>
+        {/* Refresh Button */}
+        <div className="flex justify-end mb-4">
           <button
             onClick={loadYearData}
             disabled={isLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-[#131722] border border-[#2a2e39] rounded text-[#787b86] hover:text-white hover:border-[#787b86] transition-colors disabled:opacity-50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-[#131722] border border-[#2a2e39] rounded text-[13px] text-[#787b86] hover:text-white hover:border-[#787b86] transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
             Refresh
