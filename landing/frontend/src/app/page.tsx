@@ -40,60 +40,63 @@ const SCREEN_SHORT_DATA = [
   { ticker: "FYBR", last: 38.49, change: 0.13, volume: "13.03M", signal: "Halted" },
 ];
 
-// CSS for typewriter and loading animations
+// CSS for animations
 const styleSheet = `
   @keyframes blink {
     0%, 50% { opacity: 1; }
     51%, 100% { opacity: 0; }
   }
 
-  @keyframes loadingBar {
-    0% { width: 0%; }
-    20% { width: 25%; }
-    40% { width: 45%; }
-    60% { width: 70%; }
-    80% { width: 90%; }
-    100% { width: 100%; }
-  }
-
-  @keyframes loadingPulse {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-
   .cursor-blink {
     animation: blink 0.8s step-end infinite;
   }
 
-  .loading-bar-fill {
-    animation: loadingBar 0.8s ease-out forwards;
+  .card-flip {
+    perspective: 1000px;
   }
 
-  .loading-pulse {
-    animation: loadingPulse 0.4s ease-in-out infinite;
+  .card-flip-inner {
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+
+  .card-flip:hover .card-flip-inner {
+    transform: rotateY(180deg);
+  }
+
+  .card-front,
+  .card-back {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  .card-back {
+    transform: rotateY(180deg);
   }
 `;
 
 function FeatureCard({
   icon: Icon,
   title,
+  subtitle,
+  description,
   techTitle,
   techDescription,
-  refId,
+  color,
   href,
 }: {
   icon: React.ElementType;
   title: string;
+  subtitle: string;
+  description: string;
   techTitle: string;
   techDescription: string;
-  refId: string;
+  color: string;
   href: string;
 }) {
   const [isHovered, setIsHovered] = useState(false);
   const [displayedText, setDisplayedText] = useState("");
   const [showCursor, setShowCursor] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [buttonPressed, setButtonPressed] = useState(false);
   const typewriterRef = useRef<NodeJS.Timeout | null>(null);
   const cursorRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -104,240 +107,163 @@ function FeatureCard({
       setShowCursor(true);
       let index = 0;
 
-      typewriterRef.current = setInterval(() => {
-        if (index < techTitle.length) {
-          setDisplayedText(techTitle.slice(0, index + 1));
-          index++;
-        } else {
-          if (typewriterRef.current) clearInterval(typewriterRef.current);
-          // Keep cursor blinking for 2 more seconds
-          cursorRef.current = setTimeout(() => {
-            setShowCursor(false);
-          }, 2000);
-        }
-      }, 50);
+      const startDelay = setTimeout(() => {
+        typewriterRef.current = setInterval(() => {
+          if (index < techTitle.length) {
+            setDisplayedText(techTitle.slice(0, index + 1));
+            index++;
+          } else {
+            if (typewriterRef.current) clearInterval(typewriterRef.current);
+            cursorRef.current = setTimeout(() => {
+              setShowCursor(false);
+            }, 2000);
+          }
+        }, 50);
+      }, 400); // Wait for flip animation
+
+      return () => {
+        clearTimeout(startDelay);
+        if (typewriterRef.current) clearInterval(typewriterRef.current);
+        if (cursorRef.current) clearTimeout(cursorRef.current);
+      };
     } else {
       if (typewriterRef.current) clearInterval(typewriterRef.current);
       if (cursorRef.current) clearTimeout(cursorRef.current);
       setDisplayedText("");
       setShowCursor(false);
-      setIsLoading(false);
     }
-
-    return () => {
-      if (typewriterRef.current) clearInterval(typewriterRef.current);
-      if (cursorRef.current) clearTimeout(cursorRef.current);
-    };
   }, [isHovered, techTitle]);
 
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setButtonPressed(true);
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setButtonPressed(false);
-    }, 150);
-
-    setTimeout(() => {
-      window.location.href = href;
-    }, 900);
-  };
-
-  // Brushed steel gradient
-  const brushedSteelBg = `
+  // Brushed platinum gradient (Mac OS 9 Sherlock style)
+  const brushedPlatinumBg = `
     linear-gradient(
-      135deg,
-      #2a2d35 0%,
-      #3a3d45 25%,
-      #2a2d35 50%,
-      #3a3d45 75%,
-      #2a2d35 100%
+      180deg,
+      #c8ccd4 0%,
+      #b8bcc4 15%,
+      #a8acb4 30%,
+      #b8bcc4 50%,
+      #a8acb4 70%,
+      #98a0a8 85%,
+      #888c94 100%
     )
   `;
 
   return (
-    <div
-      className="group relative rounded-lg cursor-pointer transition-all duration-300"
-      style={{
-        background: brushedSteelBg,
-        boxShadow: isHovered
-          ? `
-              0 0 0 2px #007AFF,
-              0 0 20px rgba(0, 122, 255, 0.3),
-              inset 0 2px 4px rgba(0, 0, 0, 0.4),
-              inset 0 -1px 2px rgba(255, 255, 255, 0.05)
-            `
-          : `
-              inset 0 2px 4px rgba(0, 0, 0, 0.4),
-              inset 0 -1px 2px rgba(255, 255, 255, 0.05),
-              0 4px 12px rgba(0, 0, 0, 0.3)
-            `,
-      }}
+    <a
+      href={href}
+      className="card-flip block h-[200px]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
     >
-      {/* Brushed metal texture overlay */}
-      <div
-        className="absolute inset-0 rounded-lg opacity-30 pointer-events-none"
-        style={{
-          background: `repeating-linear-gradient(
-            90deg,
-            transparent,
-            transparent 1px,
-            rgba(255, 255, 255, 0.03) 1px,
-            rgba(255, 255, 255, 0.03) 2px
-          )`,
-        }}
-      />
-
-      {/* Inner bevel effect */}
-      <div
-        className="absolute inset-[1px] rounded-lg pointer-events-none"
-        style={{
-          background: 'linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%, rgba(0,0,0,0.1) 100%)',
-        }}
-      />
-
-      {/* Content container */}
-      <div className="relative p-5">
-        {/* Reference ID Badge - only visible on hover */}
-        <div
-          className={`absolute top-3 right-3 font-mono text-[10px] tracking-wider transition-all duration-300 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
-          style={{ color: '#007AFF' }}
-        >
-          {refId}
-        </div>
-
-        {/* Header with icon and title */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <div
-            className="p-1.5 rounded transition-all duration-300"
-            style={{
-              background: isHovered ? 'rgba(0, 122, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-              boxShadow: isHovered ? '0 0 8px rgba(0, 122, 255, 0.3)' : 'none',
-            }}
-          >
-            <Icon
-              className="h-5 w-5 transition-colors duration-300"
-              style={{ color: isHovered ? '#007AFF' : '#9ca3af' }}
-            />
+      <div className="card-flip-inner relative w-full h-full">
+        {/* Front - Original dark design */}
+        <div className="card-front absolute inset-0 bg-[#131722] border border-[#2a2e39] rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Icon className="h-5 w-5" style={{ color }} />
+            <h3 className="text-white font-semibold text-sm">{title}</h3>
           </div>
-          <h3
-            className="text-sm font-semibold tracking-wide transition-colors duration-300"
-            style={{
-              color: isHovered ? '#ffffff' : '#d1d5db',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif',
-            }}
-          >
-            {title}
-          </h3>
+          <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
+          <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
         </div>
 
-        {/* Blue selection bar - Apple style */}
+        {/* Back - Mac OS 9 Sherlock platinum style */}
         <div
-          className={`h-[2px] mb-4 rounded-full transition-all duration-300 ${
-            isHovered ? 'opacity-100' : 'opacity-0'
-          }`}
+          className="card-back absolute inset-0 rounded-lg p-4 flex flex-col"
           style={{
-            background: 'linear-gradient(90deg, #007AFF 0%, #00c6ff 100%)',
-            boxShadow: '0 0 8px rgba(0, 122, 255, 0.5)',
+            background: brushedPlatinumBg,
+            boxShadow: `
+              inset 0 1px 0 rgba(255, 255, 255, 0.6),
+              inset 0 -1px 0 rgba(0, 0, 0, 0.2),
+              0 4px 12px rgba(0, 0, 0, 0.3)
+            `,
           }}
-        />
-
-        {/* Tech Title with Typewriter effect */}
-        <div className="mb-3 min-h-[24px]">
-          <span
-            className="font-semibold text-[13px]"
+        >
+          {/* Horizontal brushed lines texture */}
+          <div
+            className="absolute inset-0 rounded-lg pointer-events-none opacity-40"
             style={{
-              color: '#e5e7eb',
-              fontFamily: '"SF Mono", "Fira Code", "Monaco", monospace',
+              background: `repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 1px,
+                rgba(255, 255, 255, 0.3) 1px,
+                rgba(255, 255, 255, 0.3) 2px
+              )`,
             }}
-          >
-            {isHovered ? displayedText : techTitle}
-            {showCursor && (
-              <span
-                className="cursor-blink ml-0.5 inline-block"
+          />
+
+          {/* Inner bevel/groove effect */}
+          <div
+            className="absolute inset-[3px] rounded-md pointer-events-none"
+            style={{
+              boxShadow: `
+                inset 1px 1px 2px rgba(0, 0, 0, 0.15),
+                inset -1px -1px 1px rgba(255, 255, 255, 0.5)
+              `,
+            }}
+          />
+
+          {/* Content */}
+          <div className="relative flex flex-col h-full">
+            {/* Tech Title with Typewriter */}
+            <div className="mb-3">
+              <h4
+                className="font-bold text-[14px] tracking-tight"
                 style={{
-                  color: '#007AFF',
-                  fontWeight: 'bold',
+                  color: '#1a1a1a',
+                  fontFamily: '"SF Mono", "Monaco", "Consolas", monospace',
+                  textShadow: '0 1px 0 rgba(255, 255, 255, 0.5)',
                 }}
               >
-                _
-              </span>
-            )}
-          </span>
-        </div>
+                {isHovered ? displayedText : techTitle}
+                {showCursor && (
+                  <span
+                    className="cursor-blink ml-0.5 inline-block"
+                    style={{ color: '#1a1a1a' }}
+                  >
+                    _
+                  </span>
+                )}
+              </h4>
+            </div>
 
-        {/* Description */}
-        <p
-          className="text-[12px] leading-relaxed mb-5"
-          style={{
-            color: '#9ca3af',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif',
-          }}
-        >
-          {techDescription}
-        </p>
-
-        {/* Explorar Button with physical press effect */}
-        <div className="relative">
-          <button
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded text-[12px] font-medium
-              transition-all duration-100
-            `}
-            style={{
-              background: buttonPressed
-                ? 'linear-gradient(180deg, #1a1d24 0%, #2a2d35 100%)'
-                : 'linear-gradient(180deg, #3a3d45 0%, #2a2d35 100%)',
-              boxShadow: buttonPressed
-                ? 'inset 0 2px 4px rgba(0, 0, 0, 0.5)'
-                : `
-                    0 2px 4px rgba(0, 0, 0, 0.3),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.1)
-                  `,
-              transform: buttonPressed ? 'translateY(1px)' : 'translateY(0)',
-              color: isHovered ? '#007AFF' : '#9ca3af',
-              fontFamily: '"SF Mono", monospace',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            }}
-          >
-            <span>Explorar</span>
-            <svg
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${isHovered ? 'translate-x-0.5' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-
-          {/* Vintage Loading Bar */}
-          {isLoading && (
-            <div
-              className="absolute -bottom-4 left-0 right-0 h-1 rounded-full overflow-hidden"
+            {/* Description */}
+            <p
+              className="text-[12px] leading-relaxed flex-1"
               style={{
-                background: 'rgba(0, 0, 0, 0.4)',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.5)',
+                color: '#3a3a3a',
+                fontFamily: '-apple-system, "Lucida Grande", sans-serif',
               }}
             >
-              <div
-                className="h-full loading-bar-fill loading-pulse rounded-full"
+              {techDescription}
+            </p>
+
+            {/* Explorar Button - Mac OS 9 style */}
+            <div className="mt-auto">
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded text-[12px] font-medium transition-all"
                 style={{
-                  background: 'linear-gradient(90deg, #007AFF 0%, #00c6ff 50%, #007AFF 100%)',
-                  boxShadow: '0 0 8px rgba(0, 122, 255, 0.6)',
+                  background: 'linear-gradient(180deg, #f0f0f0 0%, #d0d0d0 50%, #c0c0c0 100%)',
+                  boxShadow: `
+                    0 1px 2px rgba(0, 0, 0, 0.2),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.1)
+                  `,
+                  border: '1px solid #888',
+                  color: '#1a1a1a',
+                  fontFamily: '-apple-system, "Lucida Grande", sans-serif',
                 }}
-              />
+              >
+                Explorar
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </span>
             </div>
-          )}
+          </div>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
 
@@ -372,31 +298,37 @@ export default function Home() {
         </header>
 
         <div className="max-w-[1200px] mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <FeatureCard
               icon={Database}
               title="MARKET ANALYTICS"
+              subtitle="Historical Intelligence"
+              description="Explore our massive historical database with advanced Small Caps analytics. Identify success patterns through the study of previous behaviors, correlations and performance metrics similar to high-precision institutional research."
               techTitle="Big Data & Quant Research"
               techDescription="Not just a scanner; a quantitative analysis engine processing years of micro-movements to deliver statistical edge before market open."
-              refId="REF_ID: 001-QUANT"
+              color="#2962ff"
               href="https://analytics.tsis.ai"
             />
 
             <FeatureCard
               icon={Cpu}
               title="STRATEGIES & STOCKS IN PLAY"
+              subtitle="Real-Time Algorithmic Execution"
+              description="The central app monitoring Stocks in Play. TSIS automatically applies predictive strategies on the day's hottest assets. Compare your manual trading against programmed systematic execution to detect deviations and optimize your edge."
               techTitle="Hybrid Machine Learning"
               techDescription="The system executes your same plays under rigid systematic trading rules. Comparative analysis between human intuition and algorithmic efficiency."
-              refId="REF_ID: 002-ALGO"
+              color="#26a69a"
               href="https://strategy.tsis.ai"
             />
 
             <FeatureCard
               icon={LineChart}
               title="TRACKING PERFORMANCE"
+              subtitle="Performance Journaling"
+              description="Your intelligent trading journal. Import trades via CSV/Excel for deep profitability breakdown. Visualize equity curve, Sharpe ratios, and risk statistics automatically to transform data into winning decisions."
               techTitle="Feedback Loop"
               techDescription="Full integration: what you record in your journal feeds global statistics, closing the circle between theory (Analytics) and practice (Stocks in Play)."
-              refId="REF_ID: 003-PERF"
+              color="#ff9800"
               href="https://journal.tsis.ai"
             />
           </div>
