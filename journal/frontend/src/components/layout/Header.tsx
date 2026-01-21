@@ -83,8 +83,8 @@ export default function Header() {
     <header className="bg-[#0d1117]">
       {/* Top Row - Logo and Actions (like landing) */}
       <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
-        {/* Logo - matches landing exactly */}
-        <a href="https://tsis.ai" className="flex items-baseline gap-2 shrink-0">
+        {/* Logo - aligned with Dashboard tab */}
+        <a href="https://tsis.ai" className="flex items-baseline gap-2 shrink-0 ml-4">
           <span className="text-white font-bold text-xl tracking-tight">
             TSIS<span className="text-white">.ai</span>
           </span>
