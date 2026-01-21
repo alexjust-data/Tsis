@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Zap,
   Home,
@@ -29,6 +29,7 @@ import {
   ZoomIn,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuthStore } from "@/lib/auth";
 
 interface NavItem {
   icon: React.ElementType;
@@ -58,6 +59,14 @@ const TOOLBAR_ITEMS: NavItem[] = [
 ];
 
 export default function Sidebar() {
+  const router = useRouter();
+  const { logout, user } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
+
   return (
     <aside className="w-[52px] bg-[#131722] border-r border-[#2a2e39] flex flex-col h-full">
       {/* Logo */}
@@ -104,6 +113,7 @@ export default function Sidebar() {
             <Settings className="h-[18px] w-[18px]" />
           </button>
           <button
+            onClick={handleLogout}
             className="w-9 h-9 flex items-center justify-center text-[#787b86] hover:text-[#d1d4dc] hover:bg-[#2a2e39] rounded transition-colors"
             title="Logout"
           >

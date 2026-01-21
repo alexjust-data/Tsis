@@ -2,6 +2,7 @@
 
 import { use, useState, useCallback, useEffect, useRef } from "react";
 import Sidebar from "@/components/layout/Sidebar";
+import AuthGuard from "@/components/layout/AuthGuard";
 import GapStatistics from "@/components/gaps/GapStatistics";
 import GapHistory from "@/components/gaps/GapHistory";
 import TickerInfo from "@/components/ticker/TickerInfo";
@@ -159,9 +160,10 @@ export default function TickerPage({ params }: TickerPageProps) {
   const isResizing = isResizingRight || isResizingBottom;
 
   return (
-    <div className="h-screen flex bg-[#0d1117] overflow-hidden">
-      {/* Left Sidebar */}
-      <Sidebar />
+    <AuthGuard>
+      <div className="h-screen flex bg-[#0d1117] overflow-hidden">
+        {/* Left Sidebar */}
+        <Sidebar />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0" ref={containerRef}>
@@ -326,5 +328,6 @@ export default function TickerPage({ params }: TickerPageProps) {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }

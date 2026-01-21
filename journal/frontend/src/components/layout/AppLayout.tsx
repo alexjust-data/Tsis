@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth';
 import { useCalculatorStore } from '@/lib/calculator';
 import Header from './Header';
-import Sidebar from './Sidebar';
 import CalculatorModal from '@/components/calculator/CalculatorModal';
 
 interface AppLayoutProps {
@@ -51,14 +50,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <>
-      <div className="min-h-screen bg-[#0d1117] flex">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Header />
-          <main className="flex-1 overflow-y-auto bg-[#0d1117]">
-            {children}
-          </main>
-        </div>
+      <div className="min-h-screen bg-[#0d1117] flex flex-col">
+        <Header />
+        <main className="flex-1 overflow-y-auto bg-[#0d1117]">
+          {children}
+        </main>
       </div>
       {/* Global Calculator Modal - F2 to open */}
       <CalculatorModal />

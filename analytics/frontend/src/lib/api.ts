@@ -2,6 +2,64 @@ const API_BASE_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:8001'
   : 'https://steadfast-encouragement-production.up.railway.app';
 
+// Auth API uses the same backend as journal for unified user accounts
+const AUTH_API_URL = 'https://gracious-enjoyment-production.up.railway.app/api/v1';
+
+// ============ AUTH API ============
+class ApiError extends Error {
+  constructor(
+    public status: number,
+    public statusText: string,
+    public data?: unknown
+  ) {
+    super(`${status}: ${statusText}`);
+    this.name = "ApiError";
+  }
+}
+
+export const authApi = {
+  register: async (data: { email: string; password: string; name?: string }) => {
+    const response = await fetch(`${AUTH_API_URL}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new ApiError(response.status, response.statusText, errorData);
+    }
+    return response.json() as Promise<{ id: number; email: string; name: string | null }>;
+  },
+
+  login: async (email: string, password: string) => {
+    const formData = new URLSearchParams();
+    formData.append("username", email);
+    formData.append("password", password);
+
+    const response = await fetch(`${AUTH_API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new ApiError(response.status, response.statusText, errorData);
+    }
+    return response.json() as Promise<{ access_token: string; token_type: string }>;
+  },
+
+  me: async (token: string) => {
+    const response = await fetch(`${AUTH_API_URL}/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => null);
+      throw new ApiError(response.status, response.statusText, errorData);
+    }
+    return response.json() as Promise<{ id: number; email: string; name: string | null; is_active: boolean }>;
+  },
+};
+
 // ============ CLIENT-SIDE CACHE ============
 // In-flight requests cache to prevent duplicate concurrent calls
 const inFlightRequests = new Map<string, Promise<unknown>>();
