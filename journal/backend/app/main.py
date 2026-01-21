@@ -32,6 +32,8 @@ app.add_middleware(
         "https://www.tsis.ai",
         "https://journal.tsis.ai",
         "https://www.journal.tsis.ai",
+        "https://analytics.tsis.ai",
+        "https://www.analytics.tsis.ai",
         "https://tsis-zeta.vercel.app",
     ],
     allow_credentials=True,
