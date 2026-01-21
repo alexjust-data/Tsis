@@ -146,7 +146,9 @@ export default function ScreenerTable({
             {sortedData.map((row, index) => (
               <tr
                 key={`${row.ticker}-${index}`}
-                className="border-b border-[#2a2e39]/50 last:border-b-0 hover:bg-[#1e222d] transition-colors"
+                className={`border-b border-[#2a2e39]/30 last:border-b-0 hover:bg-[#1e222d] transition-colors ${
+                  index % 2 === 0 ? 'bg-[#0d1117]' : 'bg-[#161b22]'
+                }`}
               >
                 <td className="w-[60px] py-1 px-3">
                   <a
