@@ -2,6 +2,63 @@ const API_BASE_URL = process.env.NODE_ENV === 'development'
   ? 'http://localhost:8001'
   : 'https://steadfast-encouragement-production.up.railway.app';
 
+// ============ CLIENT-SIDE CACHE ============
+// In-flight requests cache to prevent duplicate concurrent calls
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
+// Response cache with TTL
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+const responseCache = new Map<string, CacheEntry<unknown>>();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getCached<T>(key: string): T | null {
+  const entry = responseCache.get(key);
+  if (entry && Date.now() - entry.timestamp < CACHE_TTL_MS) {
+    return entry.data as T;
+  }
+  return null;
+}
+
+function setCache<T>(key: string, data: T): void {
+  responseCache.set(key, { data, timestamp: Date.now() });
+}
+
+// Deduplicated fetch - prevents multiple concurrent requests for the same URL
+async function fetchWithDedup<T>(url: string): Promise<T> {
+  // Check response cache first
+  const cached = getCached<T>(url);
+  if (cached) {
+    return cached;
+  }
+
+  // Check if request is already in flight
+  if (inFlightRequests.has(url)) {
+    return inFlightRequests.get(url) as Promise<T>;
+  }
+
+  // Make the request
+  const promise = (async () => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setCache(url, data);
+      return data as T;
+    } finally {
+      inFlightRequests.delete(url);
+    }
+  })();
+
+  inFlightRequests.set(url, promise);
+  return promise;
+}
+
 // Types
 export interface GapHistoryItem {
   date: string;
@@ -64,28 +121,19 @@ export interface Quote {
 
 // API Functions
 export async function fetchGapStats(ticker: string): Promise<GapStats> {
-  const response = await fetch(`${API_BASE_URL}/api/gaps/${ticker}/stats`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch gap stats: ${response.statusText}`);
-  }
-  return response.json();
+  const url = `${API_BASE_URL}/api/gaps/${ticker}/stats`;
+  return fetchWithDedup<GapStats>(url);
 }
 
 export async function fetchGapHistory(ticker: string, limit = 50): Promise<GapHistoryItem[]> {
-  const response = await fetch(`${API_BASE_URL}/api/gaps/${ticker}?limit=${limit}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch gap history: ${response.statusText}`);
-  }
-  const data = await response.json();
+  const url = `${API_BASE_URL}/api/gaps/${ticker}?limit=${limit}`;
+  const data = await fetchWithDedup<{ gaps: GapHistoryItem[] }>(url);
   return data.gaps;
 }
 
 export async function fetchTickerQuotes(ticker: string, limit = 100): Promise<Quote[]> {
-  const response = await fetch(`${API_BASE_URL}/api/tickers/${ticker}/quotes?limit=${limit}`);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch quotes: ${response.statusText}`);
-  }
-  const data = await response.json();
+  const url = `${API_BASE_URL}/api/tickers/${ticker}/quotes?limit=${limit}`;
+  const data = await fetchWithDedup<{ quotes: Quote[] }>(url);
   return data.quotes;
 }
 

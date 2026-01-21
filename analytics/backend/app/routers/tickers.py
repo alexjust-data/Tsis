@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 from typing import Optional
 import json
-from app.services.parquet_service import get_available_tickers, load_ticker_quotes, load_ohlcv_intraday
+from app.services.parquet_service import get_available_tickers, load_ticker_quotes, load_ohlcv_intraday, list_ticker_intraday_files
 
 router = APIRouter()
 
@@ -78,6 +78,21 @@ async def get_ticker_quotes(
         return JSONResponse(content=result)
     except HTTPException:
         raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/{ticker}/intraday-files")
+async def list_ticker_intraday(ticker: str):
+    """List available intraday data files for a ticker (debug endpoint)."""
+    ticker = ticker.upper()
+    try:
+        files = list_ticker_intraday_files(ticker)
+        return {
+            "ticker": ticker,
+            "files": files,
+            "count": len(files)
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

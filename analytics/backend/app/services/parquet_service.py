@@ -19,6 +19,7 @@ from app.config import (
 
 # R2 paths
 R2_OHLCV_PREFIX = "ohlcv_intraday_1m"
+R2_QUOTES_PREFIX = "quotes_p95"  # Pre-aggregated daily data (fast!)
 
 # S3 client singleton
 _s3_client = None
@@ -89,7 +90,7 @@ def read_parquet_from_r2(key: str) -> pd.DataFrame:
 
 
 def get_available_tickers() -> List[str]:
-    """Get list of all available tickers from OHLCV data in R2. Cached for 1 hour."""
+    """Get list of all available tickers from quotes_p95 data in R2. Cached for 1 hour."""
     global _available_tickers_cache, _available_tickers_timestamp
 
     # Check cache
@@ -99,21 +100,36 @@ def get_available_tickers() -> List[str]:
     s3 = get_s3_client()
     tickers = set()
 
-    # Check both year ranges
+    # Check both year ranges in quotes_p95 (faster than ohlcv_intraday_1m)
     for year_range in ['2019_2025', '2004_2018']:
-        prefix = f"{R2_OHLCV_PREFIX}/{year_range}/"
+        prefix = f"{R2_QUOTES_PREFIX}/{year_range}/"
 
         try:
-            # List objects with delimiter to get "folders" (tickers)
             paginator = s3.get_paginator('list_objects_v2')
-            for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix, Delimiter='/'):
-                for common_prefix in page.get('CommonPrefixes', []):
-                    # Extract ticker from path like: ohlcv_intraday_1m/2019_2025/AAPL/
-                    ticker = common_prefix['Prefix'].rstrip('/').split('/')[-1]
-                    if ticker and not ticker.startswith('.'):
-                        tickers.add(ticker)
+            for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    # Extract ticker from path like: quotes_p95/2019_2025/AAPL.parquet
+                    key = obj['Key']
+                    if key.endswith('.parquet'):
+                        ticker = key.split('/')[-1].replace('.parquet', '')
+                        if ticker and not ticker.startswith('.'):
+                            tickers.add(ticker)
         except Exception as e:
             print(f"Error listing tickers for {year_range}: {e}")
+
+    # Fallback to ohlcv_intraday_1m if quotes_p95 is empty
+    if not tickers:
+        for year_range in ['2019_2025', '2004_2018']:
+            prefix = f"{R2_OHLCV_PREFIX}/{year_range}/"
+            try:
+                paginator = s3.get_paginator('list_objects_v2')
+                for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix, Delimiter='/'):
+                    for common_prefix in page.get('CommonPrefixes', []):
+                        ticker = common_prefix['Prefix'].rstrip('/').split('/')[-1]
+                        if ticker and not ticker.startswith('.'):
+                            tickers.add(ticker)
+            except Exception as e:
+                print(f"Error listing tickers from ohlcv for {year_range}: {e}")
 
     result = sorted(list(tickers))
 
@@ -156,9 +172,9 @@ def get_ticker_ohlcv_keys(ticker: str) -> List[str]:
 
 def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.DataFrame:
     """
-    Load daily OHLCV data for a ticker by aggregating 1-minute data from R2.
-    Returns daily open, high, low, close, volume.
-    Results are cached for 1 hour to avoid repeated R2 downloads.
+    Load daily OHLCV data for a ticker from pre-aggregated quotes_p95 files.
+    Falls back to aggregating minute data if quotes_p95 not available.
+    Results are cached for 1 hour.
     """
     # Check cache first (without limit - we cache full data)
     if _is_cache_valid(ticker, _cache_timestamps) and ticker in _ticker_cache:
@@ -167,6 +183,57 @@ def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.Data
             return cached_df.tail(limit).reset_index(drop=True)
         return cached_df.copy()
 
+    all_data = []
+
+    # Try loading from quotes_p95 (pre-aggregated daily data - FAST!)
+    for year_range in ['2019_2025', '2004_2018']:
+        # Try different possible file patterns
+        possible_keys = [
+            f"{R2_QUOTES_PREFIX}/{year_range}/{ticker}.parquet",
+            f"{R2_QUOTES_PREFIX}/{year_range}/{ticker}/data.parquet",
+        ]
+
+        for key in possible_keys:
+            try:
+                df = read_parquet_from_r2(key)
+                if not df.empty:
+                    all_data.append(df)
+                    break
+            except Exception:
+                continue
+
+    # Combine all data
+    if all_data:
+        result = pd.concat(all_data, ignore_index=True)
+
+        # Ensure date column
+        if 'date' in result.columns:
+            result['date'] = pd.to_datetime(result['date'])
+        elif 'Date' in result.columns:
+            result['date'] = pd.to_datetime(result['Date'])
+            result = result.drop(columns=['Date'])
+
+        # Normalize column names
+        result.columns = [c.lower() for c in result.columns]
+
+        result = result.drop_duplicates(subset=['date'])
+        result = result.sort_values('date').reset_index(drop=True)
+
+        # Cache the full result
+        _ticker_cache[ticker] = result
+        _cache_timestamps[ticker] = time.time()
+
+        if limit:
+            result = result.tail(limit).reset_index(drop=True)
+
+        return result
+
+    # Fallback: aggregate from minute data (slow, but works)
+    return _load_daily_from_minute_data(ticker, limit)
+
+
+def _load_daily_from_minute_data(ticker: str, limit: Optional[int] = None) -> pd.DataFrame:
+    """Fallback: Load daily OHLCV by aggregating 1-minute data (slow)."""
     keys = get_ticker_ohlcv_keys(ticker)
 
     if not keys:
@@ -184,7 +251,6 @@ def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.Data
             # Check required columns
             required = ['open', 'high', 'low', 'close', 'volume', 'date']
             if not all(col in df.columns for col in required):
-                print(f"Missing columns in {key}: {df.columns.tolist()}")
                 continue
 
             # Group by date and aggregate to daily
@@ -210,7 +276,7 @@ def load_ticker_daily_ohlcv(ticker: str, limit: Optional[int] = None) -> pd.Data
     result = result.drop_duplicates(subset=['date'])
     result = result.sort_values('date').reset_index(drop=True)
 
-    # Cache the full result (without limit)
+    # Cache the full result
     _ticker_cache[ticker] = result
     _cache_timestamps[ticker] = time.time()
 
@@ -225,21 +291,73 @@ def load_ticker_quotes(ticker: str, limit: Optional[int] = None) -> pd.DataFrame
     return load_ticker_daily_ohlcv(ticker, limit)
 
 
+def list_ticker_intraday_files(ticker: str) -> List[str]:
+    """List all available intraday data files for a ticker in R2."""
+    s3 = get_s3_client()
+    keys = []
+
+    for year_range in ['2019_2025', '2004_2018']:
+        prefix = f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/"
+
+        try:
+            paginator = s3.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=R2_BUCKET, Prefix=prefix):
+                for obj in page.get('Contents', []):
+                    keys.append(obj['Key'])
+        except Exception as e:
+            print(f"Error listing intraday files for {ticker}: {e}")
+
+    return keys
+
+
 def load_ohlcv_intraday(ticker: str, date: str) -> pd.DataFrame:
     """Load intraday 1-minute OHLCV data for a ticker on a specific date from R2."""
     year, month, day = date.split("-")
     year_int = int(year)
 
-    year_range = '2019_2025' if year_int >= 2019 else '2004_2018'
-    key = f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/year={year}/month={month}/minute.parquet"
+    # Ensure month is zero-padded
+    month_padded = month.zfill(2)
 
-    df = read_parquet_from_r2(key)
+    year_range = '2019_2025' if year_int >= 2019 else '2004_2018'
+
+    # Try multiple path formats
+    possible_keys = [
+        # Format: ohlcv_intraday_1m/2019_2025/TICKER/year=2019/month=11/minute.parquet
+        f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/year={year}/month={month_padded}/minute.parquet",
+        # Format with day: ohlcv_intraday_1m/2019_2025/TICKER/year=2019/month=11/day=11/minute.parquet
+        f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/year={year}/month={month_padded}/day={day}/minute.parquet",
+        # Format: ohlcv_intraday_1m/2019_2025/TICKER/2019/11/minute.parquet
+        f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/{year}/{month_padded}/minute.parquet",
+        # Format: ohlcv_intraday_1m/2019_2025/TICKER/2019-11/data.parquet
+        f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/{year}-{month_padded}/data.parquet",
+        # Format: ohlcv_intraday_1m/2019_2025/TICKER/data.parquet (all data in one file)
+        f"{R2_OHLCV_PREFIX}/{year_range}/{ticker}/data.parquet",
+    ]
+
+    df = pd.DataFrame()
+    tried_keys = []
+
+    for key in possible_keys:
+        tried_keys.append(key)
+        df = read_parquet_from_r2(key)
+        if not df.empty:
+            print(f"SUCCESS: Loaded intraday from {key}, rows: {len(df)}")
+            break
 
     if df.empty:
+        print(f"No intraday data found for {ticker} on {date}. Tried keys: {tried_keys}")
         return pd.DataFrame()
+
+    # Debug: print columns
+    print(f"DEBUG: Columns for {ticker} on {date}: {df.columns.tolist()}")
 
     # Filter for specific date
     if 'date' in df.columns:
-        df = df[df['date'] == date]
+        # Convert date column to datetime if needed
+        df['date'] = pd.to_datetime(df['date'])
+        # Filter for the specific date
+        target_date = pd.to_datetime(date)
+        df = df[df['date'].dt.date == target_date.date()]
+        print(f"DEBUG: After date filter for {date}, rows remaining: {len(df)}")
 
     return df

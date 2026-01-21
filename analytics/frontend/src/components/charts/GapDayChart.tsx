@@ -101,7 +101,9 @@ export default function GapDayChart({ ticker, date, gapOpenPrice, onNoData }: Ga
         const data = await fetchIntradayData(ticker, date!);
 
         if (!data.candles || data.candles.length === 0) {
-          setError("No intraday data available for this date");
+          // Fallback to TradingView when no candles
+          setNoData(true);
+          onNoData?.();
           return;
         }
 
@@ -166,23 +168,16 @@ export default function GapDayChart({ ticker, date, gapOpenPrice, onNoData }: Ga
         chartRef.current!.timeScale().fitContent();
       } catch (err) {
         console.error("Failed to load intraday data:", err);
-        const errorMsg = err instanceof Error ? err.message : "Failed to load data";
-        // Check if it's a 404 (no data) - trigger fallback to TradingView
-        if (errorMsg.includes("404") || errorMsg.includes("No intraday data")) {
-          setNoData(true);
-          onNoData?.();
-        } else if (errorMsg.includes("Failed to fetch")) {
-          setError("Cannot connect to server. Is the backend running?");
-        } else {
-          setError(errorMsg);
-        }
+        // Always fallback to TradingView on any error
+        setNoData(true);
+        onNoData?.();
       } finally {
         setLoading(false);
       }
     }
 
     loadData();
-  }, [ticker, date, gapOpenPrice]);
+  }, [ticker, date, gapOpenPrice, onNoData]);
 
   if (!date) {
     return (
