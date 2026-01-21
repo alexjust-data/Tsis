@@ -81,9 +81,9 @@ export default function Header() {
 
   return (
     <header className="bg-[#0d1117]">
-      {/* Top Row - Logo, Nav, Actions */}
-      <div className="h-14 flex items-center px-6">
-        {/* Logo - matches landing */}
+      {/* Top Row - Logo and Actions (like landing) */}
+      <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center justify-between">
+        {/* Logo - matches landing exactly */}
         <a href="https://tsis.ai" className="flex items-baseline gap-2 shrink-0">
           <span className="text-white font-bold text-xl tracking-tight">
             TSIS<span className="text-white">.ai</span>
@@ -91,57 +91,7 @@ export default function Header() {
           <span className="text-[#787b86] text-sm">to SmallCaps Trading</span>
         </a>
 
-        {/* Spacer */}
-        <div className="w-12" />
-
-        {/* Navigation Tabs */}
-        <div className="relative flex-1" ref={navRef}>
-          <nav className="flex items-center gap-0.5">
-            {NAV_ITEMS.map((item, index) => {
-              const isActive = pathname === item.href ||
-                (item.href !== '/dashboard' && pathname?.startsWith(item.href));
-              const isHovered = hoveredIndex === index;
-
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  ref={(el) => { itemRefs.current[index] = el; }}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                  className={`relative px-3 py-1.5 text-[13px] font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'text-white bg-[#1e222d] rounded-t-md'
-                      : isHovered
-                        ? 'text-white bg-[#1e222d]/50 rounded-t-md'
-                        : 'text-[#787b86] hover:text-white rounded-t-md'
-                  }`}
-                >
-                  {item.label}
-                  {item.badge && (
-                    <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-medium bg-[#ff9800]/20 text-[#ff9800] rounded">
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* Hover Indicator Line - only shows on hover for non-active tabs */}
-          {hoveredIndex !== null && !(pathname === NAV_ITEMS[hoveredIndex]?.href ||
-            (NAV_ITEMS[hoveredIndex]?.href !== '/dashboard' && pathname?.startsWith(NAV_ITEMS[hoveredIndex]?.href))) && (
-            <div
-              className="absolute bottom-0 h-0.5 bg-[#2962ff] transition-all duration-200 ease-out rounded-full"
-              style={{
-                left: indicatorStyle.left,
-                width: indicatorStyle.width,
-              }}
-            />
-          )}
-        </div>
-
-        {/* Right Side */}
+        {/* Right Side - Actions */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Collapsible Search */}
           <div
@@ -268,45 +218,53 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Bottom border with rounded corners for active tab */}
-      <div className="relative h-[1px] bg-[#2a2e39] mx-6">
-        {/* Active tab connector - creates the rounded corner effect */}
-        {NAV_ITEMS.map((item, index) => {
-          const isActive = pathname === item.href ||
-            (item.href !== '/dashboard' && pathname?.startsWith(item.href));
-          const el = itemRefs.current[index];
+      {/* Second Row - Navigation Tabs (separate from header) */}
+      <div className="max-w-[1400px] mx-auto px-6">
+        <div className="relative border-b border-[#2a2e39]" ref={navRef}>
+          <nav className="flex items-center gap-1">
+            {NAV_ITEMS.map((item, index) => {
+              const isActive = pathname === item.href ||
+                (item.href !== '/dashboard' && pathname?.startsWith(item.href));
+              const isHovered = hoveredIndex === index;
 
-          if (!isActive || !el || !navRef.current) return null;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  ref={(el) => { itemRefs.current[index] = el; }}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                  className={`relative px-4 py-2 text-[13px] font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'text-white bg-[#1e222d] rounded-t-md -mb-[1px] pb-[calc(0.5rem+1px)]'
+                      : isHovered
+                        ? 'text-white bg-[#1e222d]/50 rounded-t-md'
+                        : 'text-[#787b86] hover:text-white rounded-t-md'
+                  }`}
+                >
+                  {item.label}
+                  {item.badge && (
+                    <span className="ml-1.5 px-1.5 py-0.5 text-[10px] font-medium bg-[#ff9800]/20 text-[#ff9800] rounded">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </nav>
 
-          const navRect = navRef.current.getBoundingClientRect();
-          const itemRect = el.getBoundingClientRect();
-          const left = itemRect.left - navRect.left;
-          const width = itemRect.width;
-
-          return (
-            <div key={item.href}>
-              {/* Hide border under active tab */}
-              <div
-                className="absolute top-0 h-[1px] bg-[#1e222d]"
-                style={{ left: left + 4, width: width - 8 }}
-              />
-              {/* Left corner */}
-              <div
-                className="absolute -top-[3px] w-[4px] h-[4px] bg-[#0d1117]"
-                style={{ left: left }}
-              >
-                <div className="w-full h-full bg-[#1e222d] rounded-br-[4px]" />
-              </div>
-              {/* Right corner */}
-              <div
-                className="absolute -top-[3px] w-[4px] h-[4px] bg-[#0d1117]"
-                style={{ left: left + width - 4 }}
-              >
-                <div className="w-full h-full bg-[#1e222d] rounded-bl-[4px]" />
-              </div>
-            </div>
-          );
-        })}
+          {/* Hover Indicator Line - only shows on hover for non-active tabs */}
+          {hoveredIndex !== null && !(pathname === NAV_ITEMS[hoveredIndex]?.href ||
+            (NAV_ITEMS[hoveredIndex]?.href !== '/dashboard' && pathname?.startsWith(NAV_ITEMS[hoveredIndex]?.href))) && (
+            <div
+              className="absolute bottom-0 h-0.5 bg-[#2962ff] transition-all duration-200 ease-out rounded-full"
+              style={{
+                left: indicatorStyle.left,
+                width: indicatorStyle.width,
+              }}
+            />
+          )}
+        </div>
       </div>
     </header>
   );
