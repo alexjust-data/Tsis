@@ -40,7 +40,7 @@ const SCREEN_SHORT_DATA = [
   { ticker: "FYBR", last: 38.49, change: 0.13, volume: "13.03M", signal: "Halted" },
 ];
 
-// CSS for animations
+// CSS for animations - Slide Up Effect v2
 const styleSheet = `
   @keyframes blink {
     0%, 50% { opacity: 1; }
