@@ -59,46 +59,51 @@ function FeatureCard({
   color: string;
   href: string;
 }) {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    setTooltipPos({ x: e.clientX, y: e.clientY });
-  };
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <a
       href={href}
-      className="block bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-colors cursor-pointer hover:border-opacity-100"
-      style={{ borderColor: showTooltip ? color : undefined }}
-      onMouseEnter={() => setShowTooltip(true)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => setShowTooltip(false)}
+      className="group block bg-[#131722] border border-[#2a2e39] rounded-lg p-4 transition-all duration-300 cursor-pointer hover:border-opacity-100 hover:shadow-lg relative overflow-hidden"
+      style={{ borderColor: isHovered ? color : undefined }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Icon className="h-5 w-5" style={{ color }} />
-        <h3 className="text-white font-semibold text-sm">{title}</h3>
-      </div>
-      <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
-      <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
-
-      {showTooltip && (
-        <div
-          className="fixed z-50 px-4 py-3 rounded-lg shadow-2xl text-xs max-w-[350px]"
-          style={{
-            left: tooltipPos.x + 15,
-            top: tooltipPos.y + 15,
-            backgroundColor: "#1e222d",
-            border: "1px solid #363a45",
-            borderLeftColor: "#d1d4dc",
-            borderLeftWidth: "3px",
-          }}
-        >
-          <span className="font-semibold text-[#d1d4dc]">{techTitle}</span>
-          <span className="text-[#9ba4b8]"> — </span>
-          <span className="text-[#9ba4b8]">{techDescription}</span>
+      {/* Main Content */}
+      <div className={`transition-all duration-300 ${isHovered ? 'opacity-0 transform -translate-y-2' : 'opacity-100'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <Icon className="h-5 w-5" style={{ color }} />
+          <h3 className="text-white font-semibold text-sm">{title}</h3>
         </div>
-      )}
+        <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
+        <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
+      </div>
+
+      {/* Hover Content - appears on hover */}
+      <div
+        className={`absolute inset-0 p-4 flex flex-col justify-center transition-all duration-300 ${
+          isHovered ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-4 pointer-events-none'
+        }`}
+        style={{ backgroundColor: '#131722' }}
+      >
+        <div className="flex items-center gap-2 mb-3">
+          <Icon className="h-5 w-5" style={{ color }} />
+          <h3 className="text-white font-semibold text-sm">{title}</h3>
+        </div>
+        <div
+          className="pl-3 border-l-2 mb-3"
+          style={{ borderLeftColor: color }}
+        >
+          <span className="font-semibold text-[#d1d4dc] text-sm">{techTitle}</span>
+        </div>
+        <p className="text-[#9ba4b8] text-xs leading-relaxed">{techDescription}</p>
+        <div className="mt-4 flex items-center gap-1 text-xs font-medium" style={{ color }}>
+          <span>Explorar</span>
+          <svg className="w-3 h-3 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </div>
+      </div>
     </a>
   );
 }
