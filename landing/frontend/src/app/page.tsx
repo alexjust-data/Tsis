@@ -61,29 +61,6 @@ const styleSheet = `
     animation: blink 0.8s step-end infinite;
   }
 
-  .card-flip {
-    perspective: 1000px;
-  }
-
-  .card-flip-inner {
-    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    transform-style: preserve-3d;
-  }
-
-  .card-flip:hover .card-flip-inner {
-    transform: rotateY(180deg);
-  }
-
-  .card-front,
-  .card-back {
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-  }
-
-  .card-back {
-    transform: rotateY(180deg);
-  }
-
   .loading-bar {
     animation: loadingProgress 1s ease-out forwards;
   }
@@ -160,25 +137,26 @@ function FeatureCard({
 
   return (
     <div
-      className="card-flip block h-[220px] cursor-pointer"
+      className="relative block h-[220px] cursor-pointer overflow-hidden rounded-lg"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
-      <div className="card-flip-inner relative w-full h-full">
-        {/* Front - Original dark design */}
-        <div className="card-front absolute inset-0 bg-[#131722] border border-[#2a2e39] rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Icon className="h-5 w-5" style={{ color }} />
-            <h3 className="text-white font-semibold text-sm">{title}</h3>
-          </div>
-          <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
-          <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
+      {/* Front - Original dark design */}
+      <div className="absolute inset-0 bg-[#131722] border border-[#2a2e39] rounded-lg p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Icon className="h-5 w-5" style={{ color }} />
+          <h3 className="text-white font-semibold text-sm">{title}</h3>
         </div>
+        <p className="text-[#d1d4dc] text-sm mb-2">{subtitle}</p>
+        <p className="text-[#787b86] text-xs leading-relaxed">{description}</p>
+      </div>
 
-        {/* Back - Mac OS 9 Sherlock exact style */}
-        <div
-          className="card-back absolute inset-0 rounded-lg p-3 flex flex-col"
+      {/* Back - Slides up from bottom */}
+      <div
+        className={`absolute inset-0 rounded-lg p-3 flex flex-col transition-transform duration-500 ease-out ${
+          isHovered ? 'translate-y-0' : 'translate-y-full'
+        }`}
           style={{
             /* Exact Sherlock 2 brushed aluminum background */
             background: `linear-gradient(180deg,
@@ -308,43 +286,42 @@ function FeatureCard({
             </button>
           </div>
 
-          {/* Vintage Blue Loading Bar - appears at bottom when loading */}
-          {isLoading && (
+        {/* Vintage Blue Loading Bar - appears at bottom when loading */}
+        {isLoading && (
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[6px] rounded-b-lg overflow-hidden"
+            style={{
+              background: '#888',
+              boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.3)',
+            }}
+          >
+            {/* Track groove */}
             <div
-              className="absolute bottom-0 left-0 right-0 h-[6px] rounded-b-lg overflow-hidden"
+              className="absolute inset-[1px] rounded-sm overflow-hidden"
               style={{
-                background: '#888',
-                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.3)',
+                background: `linear-gradient(180deg, #666 0%, #888 50%, #999 100%)`,
               }}
             >
-              {/* Track groove */}
+              {/* Blue progress bar */}
               <div
-                className="absolute inset-[1px] rounded-sm overflow-hidden"
+                className="h-full loading-bar"
                 style={{
-                  background: `linear-gradient(180deg, #666 0%, #888 50%, #999 100%)`,
+                  background: `linear-gradient(180deg,
+                    #6699ff 0%,
+                    #3366cc 30%,
+                    #0033aa 50%,
+                    #3366cc 70%,
+                    #6699ff 100%
+                  )`,
+                  boxShadow: `
+                    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+                    inset 0 -1px 0 rgba(0, 0, 0, 0.2)
+                  `,
                 }}
-              >
-                {/* Blue progress bar */}
-                <div
-                  className="h-full loading-bar"
-                  style={{
-                    background: `linear-gradient(180deg,
-                      #6699ff 0%,
-                      #3366cc 30%,
-                      #0033aa 50%,
-                      #3366cc 70%,
-                      #6699ff 100%
-                    )`,
-                    boxShadow: `
-                      inset 0 1px 0 rgba(255, 255, 255, 0.4),
-                      inset 0 -1px 0 rgba(0, 0, 0, 0.2)
-                    `,
-                  }}
-                />
-              </div>
+              />
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
