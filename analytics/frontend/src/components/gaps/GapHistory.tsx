@@ -184,10 +184,12 @@ export default function GapHistory({ ticker, onGapClick }: GapHistoryProps) {
                 <tr
                   key={index}
                   onClick={() => handleRowClick(item)}
-                  className={`border-b border-[#2a2e39]/50 cursor-pointer transition-colors ${
+                  className={`border-b border-[#2a2e39]/30 cursor-pointer transition-colors ${
                     selectedDate === item.date
                       ? 'bg-[#2962ff]/20 hover:bg-[#2962ff]/30'
-                      : 'hover:bg-[#1e222d]'
+                      : index % 2 === 0
+                        ? 'bg-[#0d1117] hover:bg-[#1e222d]'
+                        : 'bg-[#161b22] hover:bg-[#1e222d]'
                   }`}
                 >
                   <td className="px-3 py-2 text-[#d1d4dc] tabular-nums">{item.date}</td>
