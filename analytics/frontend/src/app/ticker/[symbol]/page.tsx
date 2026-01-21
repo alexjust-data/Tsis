@@ -37,12 +37,12 @@ export default function TickerPage({ params }: TickerPageProps) {
     const baseUrl = `https://s.tradingview.com/widgetembed/?frameElementId=tradingview_chart&symbol=${symbol.toUpperCase()}&interval=D&hidelegend=0&hidetoptoolbar=0&hidesidetoolbar=0&symboledit=1&saveimage=0&toolbarbg=131722&studies=MASimple%409%2CMASimple%4020&theme=dark&style=1&timezone=America%2FNew_York&withdateranges=1&showpopupbutton=0&locale=en`;
 
     if (selectedGapDate) {
-      // Center chart on the gap date (30 days before, 10 days after)
+      // Center chart on the gap date (1 day before, 1 day after = 3 days total)
       const gapDate = new Date(selectedGapDate);
       const fromDate = new Date(gapDate);
-      fromDate.setDate(fromDate.getDate() - 30);
+      fromDate.setDate(fromDate.getDate() - 1);
       const toDate = new Date(gapDate);
-      toDate.setDate(toDate.getDate() + 10);
+      toDate.setDate(toDate.getDate() + 1);
 
       const fromTimestamp = Math.floor(fromDate.getTime() / 1000);
       const toTimestamp = Math.floor(toDate.getTime() / 1000);
