@@ -353,11 +353,21 @@ def load_ohlcv_intraday(ticker: str, date: str) -> pd.DataFrame:
 
     # Filter for specific date
     if 'date' in df.columns:
-        # Convert date column to datetime if needed
-        df['date'] = pd.to_datetime(df['date'])
-        # Filter for the specific date
-        target_date = pd.to_datetime(date)
-        df = df[df['date'].dt.date == target_date.date()]
+        # Target date as date object
+        target_date = pd.to_datetime(date).date()
+
+        # Check if date column is already date objects or strings
+        first_date = df['date'].iloc[0]
+        if hasattr(first_date, 'date'):
+            # It's a datetime, extract date
+            df = df[df['date'].apply(lambda x: x.date() if hasattr(x, 'date') else x) == target_date]
+        elif isinstance(first_date, str):
+            # It's a string
+            df = df[df['date'] == date]
+        else:
+            # It's already a date object
+            df = df[df['date'] == target_date]
+
         print(f"DEBUG: After date filter for {date}, rows remaining: {len(df)}")
 
     return df

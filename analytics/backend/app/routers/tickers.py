@@ -123,16 +123,25 @@ async def get_ticker_intraday(
                 time_col = col
                 break
 
-        if time_col and time_col != 'time':
-            df_copy['time'] = df_copy[time_col]
+        if time_col:
+            # Convert to time string (HH:MM:SS format)
+            time_values = df_copy[time_col]
 
-        # Convert time to string format
-        if 'time' in df_copy.columns:
-            # Handle different time formats
-            if hasattr(df_copy['time'].iloc[0], 'strftime'):
-                df_copy['time'] = df_copy['time'].apply(lambda x: x.strftime('%H:%M:%S') if hasattr(x, 'strftime') else str(x))
+            # Check first value to determine format
+            first_val = time_values.iloc[0]
+
+            if hasattr(first_val, 'strftime'):
+                # It's a datetime object
+                df_copy['time'] = time_values.apply(lambda x: x.strftime('%H:%M:%S'))
+            elif isinstance(first_val, str):
+                # It's a string - might be "2019-11-08 14:33" or just "14:33"
+                if ' ' in str(first_val):
+                    # Full datetime string - extract time part
+                    df_copy['time'] = time_values.apply(lambda x: str(x).split(' ')[-1] if ' ' in str(x) else str(x))
+                else:
+                    df_copy['time'] = time_values.astype(str)
             else:
-                df_copy['time'] = df_copy['time'].astype(str)
+                df_copy['time'] = time_values.astype(str)
 
         # Ensure we have the required columns
         required_cols = ['time', 'open', 'high', 'low', 'close', 'volume']
